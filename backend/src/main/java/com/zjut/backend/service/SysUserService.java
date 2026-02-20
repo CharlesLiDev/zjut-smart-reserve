@@ -1,5 +1,6 @@
 package com.zjut.backend.service;
 
+import com.zjut.backend.common.Result;
 import com.zjut.backend.entity.SysUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -9,5 +10,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2026-02-20 16:39:05
 */
 public interface SysUserService extends IService<SysUser> {
-
+    Result login(String username, String password);
+    Result register(SysUser user);
 }
