@@ -1,7 +1,8 @@
 <template>
   <div class="main-container">
     <aside class="sidebar">
-      <div class="brand">校园预约系统</div>
+      <div class="brand">(logo)智约工大</div>
+      <p></p>
       <nav class="nav-menu">
         <RouterLink to="/main/notice" class="nav-item">📢 通知公告</RouterLink>
         <RouterLink to="/main/venues" class="nav-item">🏢 场地浏览</RouterLink>
