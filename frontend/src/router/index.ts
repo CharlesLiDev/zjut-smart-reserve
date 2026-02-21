@@ -1,23 +1,46 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import MainApp from '@/views/MainApp.vue'
+import DevEntrance from '@/views/DevEntrance.vue'
+
+// const router = createRouter({
+//   history: createWebHistory(import.meta.env.BASE_URL),
+//   routes: [
+//     {
+//       path: '/main',
+//       name: 'main',
+//       component: MainApp,
+//     }
+//   ],
+// })
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      name: 'entrance',
+      component: DevEntrance
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
-    },
-  ],
+      path: '/main',
+      component: () => import('../views/MainApp.vue'),
+      children: [
+        {
+          path: '', // 默认进入 notice
+          redirect: '/main/notice'
+        },
+        {
+          path: 'notice',
+          component: () => import('../views/NoticePage.vue')
+        },
+        {
+          path: 'venues',
+          // 先用一个临时组件占位
+          component: { template: '<h3>场地浏览页正在开发中...</h3>' }
+        }
+      ]
+    }
+  ]
 })
 
 export default router
