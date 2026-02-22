@@ -5,14 +5,19 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zjut.backend.common.Result;
+import com.zjut.backend.dto.AppointmentDTO;
+import com.zjut.backend.entity.BookingRecord;
 import com.zjut.backend.entity.VenueInfo;
+import com.zjut.backend.service.BookingRecordService;
 import com.zjut.backend.service.VenueInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/venue")
@@ -20,6 +25,8 @@ public class VenueController {
 
     @Autowired
     private VenueInfoService venueService;
+    @Autowired
+    private BookingRecordService bookingRecordService;
 
     @GetMapping
     public Result getVenues(
@@ -56,5 +63,24 @@ public class VenueController {
         return Result.success(result);
     }
 
+    @GetMapping("{id}/schedule")
+    public Result getVenueSchedule(@PathVariable Long id,
+                                   @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
+        //构建查询条件
+        LambdaQueryWrapper<BookingRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(BookingRecord::getVenueId,id)
+                .eq(BookingRecord::getBookingDate,date)
+                //0:待审核, 2:已通过, 3:已使用
+                .in(BookingRecord::getStatus,0,2,3);
+
+        //执行查询
+        List<BookingRecord> occupiedList= bookingRecordService.list(wrapper);
+
+        return Result.success(occupiedList);
+    }
+
+    @PostMapping("/test")
+    public String test() { return "ok"; }
 }
+

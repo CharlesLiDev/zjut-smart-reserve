@@ -1,5 +1,7 @@
 package com.zjut.backend.service;
 
+import com.zjut.backend.common.Result;
+import com.zjut.backend.dto.AppointmentDTO;
 import com.zjut.backend.entity.BookingRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -9,5 +11,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2026-02-20 16:39:05
 */
 public interface BookingRecordService extends IService<BookingRecord> {
-
+    Result submitAppointment(AppointmentDTO dto, Long userId);
 }
