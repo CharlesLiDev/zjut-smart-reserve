@@ -1,7 +1,10 @@
 package com.zjut.backend.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zjut.backend.common.Result;
 import com.zjut.backend.dto.AppointmentDTO;
+import com.zjut.backend.dto.AppointmentVO;
+import com.zjut.backend.dto.MyAppointmentQueryDTO;
 import com.zjut.backend.entity.BookingRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -12,4 +15,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface BookingRecordService extends IService<BookingRecord> {
     Result submitAppointment(AppointmentDTO dto, Long userId);
+    IPage<AppointmentVO> getMyAppointments(MyAppointmentQueryDTO queryDTO, Long userId);
 }
