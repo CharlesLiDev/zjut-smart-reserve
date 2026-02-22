@@ -59,6 +59,11 @@ public class VenueInfo {
      */
     private String description;
 
+    /**
+     * 
+     */
+    private Object equipment;
+
     @Override
     public boolean equals(Object that) {
         if (this == that) {
@@ -79,7 +84,8 @@ public class VenueInfo {
             && (this.getImageUrl() == null ? other.getImageUrl() == null : this.getImageUrl().equals(other.getImageUrl()))
             && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
             && (this.getAdminId() == null ? other.getAdminId() == null : this.getAdminId().equals(other.getAdminId()))
-            && (this.getDescription() == null ? other.getDescription() == null : this.getDescription().equals(other.getDescription()));
+            && (this.getDescription() == null ? other.getDescription() == null : this.getDescription().equals(other.getDescription()))
+            && (this.getEquipment() == null ? other.getEquipment() == null : this.getEquipment().equals(other.getEquipment()));
     }
 
     @Override
@@ -95,6 +101,7 @@ public class VenueInfo {
         result = prime * result + ((getStatus() == null) ? 0 : getStatus().hashCode());
         result = prime * result + ((getAdminId() == null) ? 0 : getAdminId().hashCode());
         result = prime * result + ((getDescription() == null) ? 0 : getDescription().hashCode());
+        result = prime * result + ((getEquipment() == null) ? 0 : getEquipment().hashCode());
         return result;
     }
 
@@ -113,6 +120,7 @@ public class VenueInfo {
         sb.append(", status=").append(status);
         sb.append(", adminId=").append(adminId);
         sb.append(", description=").append(description);
+        sb.append(", equipment=").append(equipment);
         sb.append("]");
         return sb.toString();
     }
