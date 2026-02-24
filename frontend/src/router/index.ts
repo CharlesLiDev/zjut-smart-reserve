@@ -1,42 +1,35 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import MainApp from '@/views/MainApp.vue'
-import DevEntrance from '@/views/DevEntrance.vue'
-
-// const router = createRouter({
-//   history: createWebHistory(import.meta.env.BASE_URL),
-//   routes: [
-//     {
-//       path: '/main',
-//       name: 'main',
-//       component: MainApp,
-//     }
-//   ],
-// })
+// import MainApp from '@/views/MainApp.vue'
+// import DevEntrance from '@/views/DevEntrance.vue'
+import Login from "@/views/Login.vue";
+import MainLayout from "@/views/MainLayout.vue";
+import Venues from "@/views/app/Venues.vue";
+import Notice from "@/views/app/Notice.vue";
+import Appointments from "@/views/app/Appointments.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
-      name: 'entrance',
-      component: DevEntrance
+      path: '/login',
+      component: Login // 登录页是独立的
     },
     {
-      path: '/main',
-      component: () => import('../views/MainApp.vue'),
+      path: '/app',
+      component: MainLayout, // 它是所有业务页的“父亲”
+      redirect: '/app/venues',
       children: [
         {
-          path: '', // 默认进入 notice
-          redirect: '/main/notice'
+          path: 'venues', // url: /app/venues
+          component: Venues
         },
         {
-          path: 'notice',
-          component: () => import('../views/NoticePage.vue')
+          path: 'notice', // url: /app/notice
+          component: Notice
         },
         {
-          path: 'venues',
-          // 先用一个临时组件占位
-          component: { template: '<h3>场地浏览页正在开发中...</h3>' }
+          path: 'appointments', // url: /app/appointments
+          component: Appointments
         }
       ]
     }
