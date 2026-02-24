@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zjut.backend.mapper.NotificationMapper">
+
+    <resultMap id="BaseResultMap" type="com.zjut.backend.entity.Notification">
+            <id property="id" column="id" />
+            <result property="title" column="title" />
+            <result property="content" column="content" />
+            <result property="type" column="type" />
+            <result property="senderId" column="sender_id" />
+            <result property="targetUserId" column="target_user_id" />
+            <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,title,content,type,sender_id,target_user_id,
+        create_time
+    </sql>
+    <select id="selectUserNotifications" resultType="com.zjut.backend.entity.Notification">
+        SELECT
+            n.*,
+            (CASE WHEN nr.id IS NOT NULL THEN 1 ELSE 0 END) as isRead
+        FROM notification n
+                 LEFT JOIN notification_read nr ON n.id = nr.notification_id AND nr.user_id = #{userId}
+        WHERE n.target_user_id IS NULL OR n.target_user_id = #{userId}
+        ORDER BY n.create_time DESC
+    </select>
+</mapper>
