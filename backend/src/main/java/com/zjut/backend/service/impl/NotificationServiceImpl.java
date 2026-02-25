@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zjut.backend.dto.NotificationQueryDTO;
+import com.zjut.backend.entity.BookingRecord;
 import com.zjut.backend.entity.Notification;
 import com.zjut.backend.entity.NotificationRead;
 import com.zjut.backend.service.NotificationReadService;
@@ -65,8 +66,6 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
     @Override
     public IPage<Notification> getUserNotifications(NotificationQueryDTO queryDTO) {
-        // 这里需要调用 Mapper 里的自定义 SQL 或使用 MP 的复杂查询
-        // 建议直接调用我们接下来要写的 Mapper 方法
         Page<Notification> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         return baseMapper.selectUserNotifications(page, queryDTO.getUserId());
     }

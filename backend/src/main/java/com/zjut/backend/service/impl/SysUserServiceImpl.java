@@ -7,6 +7,8 @@ import com.zjut.backend.common.Result;
 import com.zjut.backend.entity.SysUser;
 import com.zjut.backend.service.SysUserService;
 import com.zjut.backend.mapper.SysUserMapper;
+import com.zjut.backend.utils.JwtUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,8 +21,8 @@ import java.time.LocalDateTime;
 @Service
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements SysUserService{
 
-    private final String JWT_SECRET = "campusVenueAdmin2026_SecureKey_LongerThan32Chars";
-    private final long JWT_EXPIRE = 3600000L; // 1小时有效
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Override
     public Result login(String username, String password) {
@@ -51,13 +53,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             return Result.forcePasswordChange(user);
         }
 
-        javax.crypto.SecretKey key = io.jsonwebtoken.security.Keys.hmacShaKeyFor(JWT_SECRET.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        String token = io.jsonwebtoken.Jwts.builder()
-                .setSubject(user.getId().toString()) // 以用户ID作为主体
-                .claim("role", user.getRole())      // 把角色存入 token，方便前端识别
-                .setExpiration(new java.util.Date(System.currentTimeMillis() + JWT_EXPIRE))
-                .signWith(key)
-                .compact();
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("role", user.getRole());
+
+        String token = jwtUtils.generateToken(claims);
 
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         data.put("token", token);

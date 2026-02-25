@@ -9,9 +9,11 @@ import com.zjut.backend.dto.AppointmentDTO;
 import com.zjut.backend.dto.AppointmentVO;
 import com.zjut.backend.dto.MyAppointmentQueryDTO;
 import com.zjut.backend.entity.BookingRecord;
+import com.zjut.backend.entity.Notification;
 import com.zjut.backend.entity.VenueInfo;
 import com.zjut.backend.service.BookingRecordService;
 import com.zjut.backend.mapper.BookingRecordMapper;
+import com.zjut.backend.service.NotificationService;
 import com.zjut.backend.service.VenueInfoService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -34,10 +36,12 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         implements BookingRecordService {
     private final BookingRecordMapper bookingRecordMapper;
     private final VenueInfoService venueInfoService;
+    private final NotificationService notificationService;
 
-    public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper, VenueInfoService venueInfoService) {
+    public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper, VenueInfoService venueInfoService, NotificationService notificationService) {
         this.bookingRecordMapper = bookingRecordMapper;
         this.venueInfoService = venueInfoService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -253,9 +257,28 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
     }
 
     private void sendNotification(BookingRecord record) {
+        Notification notice = new Notification();
+
         String statusText = (record.getStatus() == 2) ? "通过" : "驳回";
-        System.out.println("【系统预留】准备给用户 ID " + record.getUserId() + " 发送通知...");
-        System.out.println("内容：您的活动 [" + record.getEventName() + "] 预约申请已被管理员" + statusText);
+        notice.setTitle("预约申请" + statusText + "通知");
+
+        String content = String.format("您的活动 [%s] 预约申请已被管理员%s。",
+                record.getEventName(), statusText);
+
+        if(record.getStatus() == 1 && record.getRejectReason()!=null){
+            content +="驳回原因："+record.getRejectReason();
+        }
+        notice.setContent(content);
+
+        notice.setTargetUserId(record.getUserId());
+        notice.setSenderId(record.getAuditadminid());
+
+        notice.setType(1);
+        notice.setCreateTime(LocalDateTime.now());
+
+        notificationService.save(notice);
+
+        System.out.println("通知已成功发送给用户ID: " + record.getUserId());
 
         // TODO: 以后在这里调用 NotificationService.save() 插入数据库
     }

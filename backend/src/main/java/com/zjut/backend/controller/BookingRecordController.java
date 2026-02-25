@@ -8,6 +8,7 @@ import com.zjut.backend.dto.AppointmentVO;
 import com.zjut.backend.dto.MyAppointmentQueryDTO;
 import com.zjut.backend.entity.BookingRecord;
 import com.zjut.backend.service.BookingRecordService;
+import com.zjut.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/appointments")
 public class BookingRecordController {
+
+    @Autowired
+    private SecurityUtils securityUtils;
 
     @Autowired
     private BookingRecordService bookingRecordService;
@@ -80,7 +84,8 @@ public class BookingRecordController {
             Long recordId = Long.valueOf(params.get("recordId").toString());
             Integer status = (Integer) params.get("status"); // 1-驳回, 2-通过
             String rejectReason = (String) params.get("rejectReason");
-            Long adminId = Long.valueOf(params.get("adminId").toString());
+
+            Long adminId = securityUtils.getCurrentUserId();
 
             // 调用你重构后的 Service 方法 (带预留通知逻辑的那个)
             boolean success = bookingRecordService.auditApply(recordId, status, rejectReason, adminId);
