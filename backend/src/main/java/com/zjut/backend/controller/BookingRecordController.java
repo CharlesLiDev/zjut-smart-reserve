@@ -68,6 +68,29 @@ public class BookingRecordController {
         return bookingRecordService.updateById(record) ? Result.success("操作成功") : Result.error("操作失败");
     }
 
+    @GetMapping("/admin/list")
+    public Result getAdminAppointments(@RequestParam Integer tab, @RequestParam Long adminId) {
+        return bookingRecordService.getAdminRecordList(tab, adminId);
+    }
+
+    @PostMapping("/admin/audit")
+    public Result audit(@RequestBody Map<String, Object> params) {
+        try {
+            // 参数解析与类型安全转换
+            Long recordId = Long.valueOf(params.get("recordId").toString());
+            Integer status = (Integer) params.get("status"); // 1-驳回, 2-通过
+            String rejectReason = (String) params.get("rejectReason");
+            Long adminId = Long.valueOf(params.get("adminId").toString());
+
+            // 调用你重构后的 Service 方法 (带预留通知逻辑的那个)
+            boolean success = bookingRecordService.auditApply(recordId, status, rejectReason, adminId);
+
+            return success ? Result.success("审批成功") : Result.error("审批失败");
+        } catch (Exception e) {
+            return Result.error("审批异常：" + e.getMessage());
+        }
+    }
+
     private boolean checkCanCancel(java.time.LocalDate date, String timeSlot) {
         try {
 

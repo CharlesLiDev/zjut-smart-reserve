@@ -9,8 +9,10 @@ import com.zjut.backend.dto.AppointmentDTO;
 import com.zjut.backend.dto.AppointmentVO;
 import com.zjut.backend.dto.MyAppointmentQueryDTO;
 import com.zjut.backend.entity.BookingRecord;
+import com.zjut.backend.entity.VenueInfo;
 import com.zjut.backend.service.BookingRecordService;
 import com.zjut.backend.mapper.BookingRecordMapper;
+import com.zjut.backend.service.VenueInfoService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author 15588
@@ -28,9 +33,11 @@ import java.time.LocalTime;
 public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, BookingRecord>
         implements BookingRecordService {
     private final BookingRecordMapper bookingRecordMapper;
+    private final VenueInfoService venueInfoService;
 
-    public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper) {
+    public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper, VenueInfoService venueInfoService) {
         this.bookingRecordMapper = bookingRecordMapper;
+        this.venueInfoService = venueInfoService;
     }
 
     @Override
@@ -117,6 +124,113 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         return voPage;
     }
 
+    @Override
+    public Integer calculateAvailabilityStatus(Long venueId) {
+
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        String currentTimeStr = now.toString().substring(0, 5); // 获取 "HH:mm" 格式
+
+        // 在方法开始处
+        System.out.println("--- 开始判定场地 ID: " + venueId + " ---");
+        System.out.println("当前系统时间字符串: [" + currentTimeStr + "]");
+
+        // 1. 获取该场地今日所有生效预约 (参考你代码中的状态 0, 2, 3)
+        LambdaQueryWrapper<BookingRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(BookingRecord::getVenueId, venueId)
+                .eq(BookingRecord::getBookingDate, today)
+                .in(BookingRecord::getStatus, 0, 2, 3);
+
+        java.util.List<BookingRecord> todayBookings = this.list(wrapper);
+
+        // 2. 定义系统支持的所有时段 (请根据你的实际排期表修改)
+        java.util.List<String> allSystemSlots = java.util.Arrays.asList(
+                "08:00-10:00", "10:00-12:00", "13:00-15:00", "15:00-17:00", "18:00-20:00"
+        );
+
+        boolean isNowOccupied = false;
+        boolean hasFutureFree = false;
+
+        // 3. 判定当前是否被占用
+        for (BookingRecord br : todayBookings) {
+            String[] parts = br.getTimeSlot().split("-");
+            if (currentTimeStr.compareTo(parts[0].trim()) >= 0 && currentTimeStr.compareTo(parts[1].trim()) < 0) {
+                isNowOccupied = true;
+                break;
+            }
+
+            System.out.println("检查预约记录时段: [" + br.getTimeSlot() + "]");
+        }
+
+        // 4. 判定今天接下来是否有空闲时段
+        for (String slot : allSystemSlots) {
+            String slotStart = slot.split("-")[0];
+            // 只看现在的时点之后的段
+            if (slotStart.compareTo(currentTimeStr) > 0) {
+                // 检查这个段是否在已预约列表里
+                boolean booked = todayBookings.stream()
+                        .anyMatch(b -> b.getTimeSlot().equals(slot));
+                if (!booked) {
+                    hasFutureFree = true;
+                    break;
+                }
+            }
+        }
+
+        // 5. 返回状态码
+        if (!isNowOccupied && hasFutureFree) return 0; // 可预约 (蓝色)
+        if (isNowOccupied && hasFutureFree) return 1;  // 稍后有空 (橙色)
+        return 2; // 今日满约 (灰色)
+    }
+
+    @Override
+    @Transactional
+    public boolean auditApply(Long recordId, Integer status, String rejectReason, Long adminId) {
+        BookingRecord record = getById(recordId);
+        if (record == null) throw new RuntimeException("记录不存在");
+
+        // 2. 设置审批状态（使用你的状态码：1为驳回，2为通过）
+        record.setStatus(status);
+        record.setAuditadminid(adminId);
+        record.setAuditTime(LocalDateTime.now());
+
+        // 3. 处理驳回理由
+        if (status == 1) { // 驳回状态
+            record.setRejectReason(rejectReason);
+        } else if (status == 2) { // 通过状态
+            record.setRejectReason(""); // 审核通过时，清空之前的驳回理由
+        }
+
+        // 4. 保存并触发通知系统
+        boolean success = updateById(record);
+        if (success) {
+            this.sendNotification(record);
+        }
+        return success;
+    }
+
+    @Override
+    public Result getAdminRecordList(Integer tab, Long adminId) {
+        List<Long> myVenueIds = venueInfoService.list(new LambdaQueryWrapper<VenueInfo>()
+                .eq(VenueInfo::getAdminId,adminId))
+                .stream()
+                .map(VenueInfo::getId)
+                .collect(Collectors.toList());
+
+        if(myVenueIds.isEmpty()){
+            return Result.success(new ArrayList<BookingRecord>());
+        }
+
+        LambdaQueryWrapper<BookingRecord> recordWrapper = new LambdaQueryWrapper<>();
+        recordWrapper.in(BookingRecord::getVenueId, myVenueIds)
+                .eq(BookingRecord::getStatus, tab) // 0-待审核, 1-已驳回, 2-已通过
+                .orderByDesc(BookingRecord::getCreateTime);
+
+        List<BookingRecord> records = this.list(recordWrapper);
+
+        return Result.success(records);
+    }
+
     //判断是否可取消预约
     private boolean checkCanCancel(java.time.LocalDate date, String timeSlot) {
         try {
@@ -136,6 +250,14 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
             e.printStackTrace();
             return false;
         }
+    }
+
+    private void sendNotification(BookingRecord record) {
+        String statusText = (record.getStatus() == 2) ? "通过" : "驳回";
+        System.out.println("【系统预留】准备给用户 ID " + record.getUserId() + " 发送通知...");
+        System.out.println("内容：您的活动 [" + record.getEventName() + "] 预约申请已被管理员" + statusText);
+
+        // TODO: 以后在这里调用 NotificationService.save() 插入数据库
     }
 }
 

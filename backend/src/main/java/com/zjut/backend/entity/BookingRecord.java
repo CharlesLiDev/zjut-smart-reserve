@@ -6,10 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * 预约申请表
@@ -72,8 +69,6 @@ public class BookingRecord {
     /**
      * 使用日期
      */
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate bookingDate;
 
     /**
@@ -95,6 +90,16 @@ public class BookingRecord {
      * 
      */
     private LocalDateTime createTime;
+
+    /**
+     * 
+     */
+    private Long auditadminid;
+
+    /**
+     * 审批时间
+     */
+    private LocalDateTime auditTime;
 
     @Override
     public boolean equals(Object that) {
@@ -122,7 +127,9 @@ public class BookingRecord {
             && (this.getTimeSlot() == null ? other.getTimeSlot() == null : this.getTimeSlot().equals(other.getTimeSlot()))
             && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
             && (this.getRejectReason() == null ? other.getRejectReason() == null : this.getRejectReason().equals(other.getRejectReason()))
-            && (this.getCreateTime() == null ? other.getCreateTime() == null : this.getCreateTime().equals(other.getCreateTime()));
+            && (this.getCreateTime() == null ? other.getCreateTime() == null : this.getCreateTime().equals(other.getCreateTime()))
+            && (this.getAuditadminid() == null ? other.getAuditadminid() == null : this.getAuditadminid().equals(other.getAuditadminid()))
+            && (this.getAuditTime() == null ? other.getAuditTime() == null : this.getAuditTime().equals(other.getAuditTime()));
     }
 
     @Override
@@ -144,6 +151,8 @@ public class BookingRecord {
         result = prime * result + ((getStatus() == null) ? 0 : getStatus().hashCode());
         result = prime * result + ((getRejectReason() == null) ? 0 : getRejectReason().hashCode());
         result = prime * result + ((getCreateTime() == null) ? 0 : getCreateTime().hashCode());
+        result = prime * result + ((getAuditadminid() == null) ? 0 : getAuditadminid().hashCode());
+        result = prime * result + ((getAuditTime() == null) ? 0 : getAuditTime().hashCode());
         return result;
     }
 
@@ -168,6 +177,8 @@ public class BookingRecord {
         sb.append(", status=").append(status);
         sb.append(", rejectReason=").append(rejectReason);
         sb.append(", createTime=").append(createTime);
+        sb.append(", auditadminid=").append(auditadminid);
+        sb.append(", auditTime=").append(auditTime);
         sb.append("]");
         return sb.toString();
     }

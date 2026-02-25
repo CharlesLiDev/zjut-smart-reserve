@@ -64,6 +64,9 @@ public class VenueInfo {
      */
     private Object equipment;
 
+    @TableField(exist = false)
+    private Integer availabilityStatus;
+
     @Override
     public boolean equals(Object that) {
         if (this == that) {

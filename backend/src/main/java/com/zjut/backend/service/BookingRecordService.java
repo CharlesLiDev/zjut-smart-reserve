@@ -8,6 +8,8 @@ import com.zjut.backend.dto.MyAppointmentQueryDTO;
 import com.zjut.backend.entity.BookingRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.time.LocalDateTime;
+
 /**
 * @author 15588
 * @description 针对表【booking_record(预约申请表)】的数据库操作Service
@@ -16,4 +18,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface BookingRecordService extends IService<BookingRecord> {
     Result submitAppointment(AppointmentDTO dto, Long userId);
     IPage<AppointmentVO> getMyAppointments(MyAppointmentQueryDTO queryDTO, Long userId);
+    Integer calculateAvailabilityStatus(Long venueId);
+    boolean auditApply(Long recordId, Integer status, String rejectReason, Long adminId);
+    Result getAdminRecordList(Integer tab, Long adminId);
 }

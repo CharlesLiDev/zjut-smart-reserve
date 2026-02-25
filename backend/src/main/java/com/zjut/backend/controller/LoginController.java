@@ -55,4 +55,8 @@ public class LoginController {
         return sysUserService.register(user);
     }
 
+    @PostMapping("/logout")
+    public Result logout(){
+        return Result.success("退出成功");
+    }
 }

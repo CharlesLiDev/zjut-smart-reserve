@@ -60,6 +60,11 @@ public class SysUser {
      */
     private LocalDateTime createTime;
 
+    /**
+     * 1-正常, 0-禁用
+     */
+    private Integer status;
+
     @Override
     public boolean equals(Object that) {
         if (this == that) {
@@ -80,7 +85,8 @@ public class SysUser {
             && (this.getIsFirstLogin() == null ? other.getIsFirstLogin() == null : this.getIsFirstLogin().equals(other.getIsFirstLogin()))
             && (this.getDeptName() == null ? other.getDeptName() == null : this.getDeptName().equals(other.getDeptName()))
             && (this.getPhoneNumber() == null ? other.getPhoneNumber() == null : this.getPhoneNumber().equals(other.getPhoneNumber()))
-            && (this.getCreateTime() == null ? other.getCreateTime() == null : this.getCreateTime().equals(other.getCreateTime()));
+            && (this.getCreateTime() == null ? other.getCreateTime() == null : this.getCreateTime().equals(other.getCreateTime()))
+            && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()));
     }
 
     @Override
@@ -96,6 +102,7 @@ public class SysUser {
         result = prime * result + ((getDeptName() == null) ? 0 : getDeptName().hashCode());
         result = prime * result + ((getPhoneNumber() == null) ? 0 : getPhoneNumber().hashCode());
         result = prime * result + ((getCreateTime() == null) ? 0 : getCreateTime().hashCode());
+        result = prime * result + ((getStatus() == null) ? 0 : getStatus().hashCode());
         return result;
     }
 
@@ -114,6 +121,7 @@ public class SysUser {
         sb.append(", deptName=").append(deptName);
         sb.append(", phoneNumber=").append(phoneNumber);
         sb.append(", createTime=").append(createTime);
+        sb.append(", status=").append(status);
         sb.append("]");
         return sb.toString();
     }

@@ -60,6 +60,13 @@ public class VenueController {
         wrapper.like(equipment != null, VenueInfo::getEquipment, equipment);
 
         IPage<VenueInfo> result= venueService.page(pageConfig,wrapper);
+        List<VenueInfo> records = result.getRecords();
+
+        for(VenueInfo venue : records){
+            Integer avaliabilityStatus = bookingRecordService.calculateAvailabilityStatus(venue.getId());
+            venue.setAvailabilityStatus(avaliabilityStatus);
+        }
+
         return Result.success(result);
     }
 
@@ -80,7 +87,7 @@ public class VenueController {
         return Result.success(occupiedList);
     }
 
-    @PostMapping("/test")
+    @GetMapping("/test")
     public String test() { return "ok"; }
 }
 

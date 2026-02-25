@@ -14,10 +14,11 @@
             <result property="deptName" column="dept_name" />
             <result property="phoneNumber" column="phone_number" />
             <result property="createTime" column="create_time" />
+            <result property="status" column="status" />
     </resultMap>
 
     <sql id="Base_Column_List">
         id,username,password,real_name,role,is_first_login,
-        dept_name,phone_number,create_time
+        dept_name,phone_number,create_time,status
     </sql>
 </mapper>
