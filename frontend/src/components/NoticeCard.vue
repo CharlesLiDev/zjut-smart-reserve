@@ -1,55 +1,124 @@
 <template>
-  <div class="notice-card">
-    <div class="card-header">
-      <span class="type-tag" :class="typeColor">{{ type }}</span>
-      <h4 class="title">{{ title }}</h4>
-      <span class="time">{{ time }}</span>
-    </div>
-    <div class="card-body">
-      <p class="content">{{ content }}</p>
+  <div class="notice-card" @click="$emit('click')">
+    <div class="type-indicator" :style="{ backgroundColor: typeColor }"></div>
+
+    <div class="card-content-wrapper">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="type-tag" :style="{ backgroundColor: typeColor }">
+            {{ type }}
+          </span>
+          <h3 class="notice-title">{{ title }}</h3>
+        </div>
+        <span class="notice-time">{{ time }}</span>
+      </div>
+
+      <div class="card-body">
+        <p class="notice-content">{{ content }}</p>
+      </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue';
 
-const props = defineProps<{
-  type: string;
-  title: string;
-  time: string;
-  content: string;
-}>();
+const props = defineProps({
+  type: String, // 公告 / 通知 / 审批
+  time: String,
+  title: String,
+  content: String
+});
 
-// 根据通知类型显示不同的颜色标签
 const typeColor = computed(() => {
-  switch (props.type) {
-    case '公告': return 'tag-green';
-    case '审批': return 'tag-blue';
-    case '通知': return 'tag-orange';
-    default: return '';
-  }
+  const colors = {
+    '审批': '#F3C382', // 肌理棕褐
+    '公告': '#CFD6C4', // 晨露灰绿
+    '通知': '#99CDD8'  // 冰雾清晨
+  };
+  return colors[props.type] || '#657166';
 });
 </script>
 
 <style scoped>
 .notice-card {
   background: white;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-left: 4px solid #42b883;
-  transition: transform 0.2s;
+  border-radius: 12px; /* 稍微减小圆角，更显精致 */
+  margin-bottom: 16px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
+  display: flex; /* 使用 flex 布局让色条和内容并排 */
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(101, 113, 102, 0.03);
 }
-.notice-card:hover { transform: translateY(-2px); }
-.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.type-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
-.tag-green { background: #e8f5e9; color: #4baf50; }
-.tag-blue { background: #e3f2fd; color: #2196f3; }
-.tag-orange { background: #fff3e0; color: #ff9800; }
-.title { margin: 0; flex: 1; font-size: 16px; color: #2c3e50; }
-.time { color: #94a3b8; font-size: 12px; }
-.content { color: #64748b; font-size: 14px; line-height: 1.5; margin: 0; }
+
+.notice-card:hover {
+  box-shadow: 0 6px 16px rgba(101, 113, 102, 0.08);
+  border-color: #DAEBE3;
+}
+
+/* 左侧垂直色条 */
+.type-indicator {
+  width: 5px;
+  flex-shrink: 0;
+}
+
+.card-content-wrapper {
+  flex: 1;
+  padding: 18px 20px;
+  min-width: 0;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.type-tag {
+  font-size: 0.7rem;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.notice-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #657166;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notice-time {
+  font-size: 0.75rem;
+  color: #999;
+  margin-left: 12px;
+}
+
+.notice-content {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>

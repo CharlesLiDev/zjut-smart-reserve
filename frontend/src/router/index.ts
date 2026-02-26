@@ -1,35 +1,46 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// import MainApp from '@/views/MainApp.vue'
-// import DevEntrance from '@/views/DevEntrance.vue'
+
 import Login from "@/views/Login.vue";
 import MainLayout from "@/views/MainLayout.vue";
-import Venues from "@/views/app/Venues.vue";
+// import Venues from "@/views/app/Venues.vue";
 import Notice from "@/views/app/Notice.vue";
 import Appointments from "@/views/app/Appointments.vue";
+
+import VenueDetail from "@/views/app/VenueDetail.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      redirect: '/app' // 测试阶段
+    },
+    {
       path: '/login',
-      component: Login // 登录页是独立的
+      component: () => import('@/views/Login.vue')
     },
     {
       path: '/app',
-      component: MainLayout, // 它是所有业务页的“父亲”
+      component: () => import('@/views/MainLayout.vue'),
       redirect: '/app/venues',
       children: [
         {
           path: 'venues', // url: /app/venues
-          component: Venues
+          component: () => import('@/views/app/Venues.vue')
         },
         {
           path: 'notice', // url: /app/notice
-          component: Notice
+          component: () => import('@/views/app/Notice.vue')
         },
         {
           path: 'appointments', // url: /app/appointments
-          component: Appointments
+          component: () => import('@/views/app/Appointments.vue')
+        },
+        {
+          path: 'venue/:id',
+          name: 'VenueDetail',
+          component: () => import('../views/app/VenueDetail.vue'),
+          meta: { title: '场地详情' }
         }
       ]
     }

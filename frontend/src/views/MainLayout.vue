@@ -30,7 +30,8 @@ const currentRouteName = computed(() => {
   const titles = {
     'venues': '场地浏览',
     'notice': '通知公告',
-    'appointments': '我的预约'
+    'appointments': '我的预约',
+    'venue': '场地详情',
   };
   // 简单匹配路径末尾
   const pathArr = route.path.split('/');

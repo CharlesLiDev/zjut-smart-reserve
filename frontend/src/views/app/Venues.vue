@@ -52,7 +52,7 @@ const activeTag = ref('全部');
 
 // 模拟 12 个数据，以便观察一排 6 个的效果
 const allVenues = ref([
-  { id: 1, name: '文辉楼 201', type: '教室', capacity: 120, location: '文辉楼', equipment: ['投影', '音响'], status: '可预约' },
+  { id: 1, name: '文辉楼 401', type: '教室', capacity: 120, location: '文辉楼', equipment: ['投影', '音响'], status: '可预约' },
   { id: 2, name: '羽毛球 03', type: '体育馆', capacity: 4, location: '体育中心', equipment: ['地板'], status: '被占用' },
   { id: 3, name: '图书馆 302', type: '会议室', capacity: 8, location: '图书馆', equipment: ['白板', '插座'], status: '可预约' },
   { id: 4, name: '报告厅 A', type: '教室', capacity: 300, location: '大礼堂', equipment: ['大屏', '空调'], status: '可预约' },

@@ -7,6 +7,7 @@ const menuItems = ref([
   { name: '　[用户]场地浏览　', path: '/app/venues', icon: '🔍' },
   { name: '　[用户]我的预约　', path: '/app/appointments', icon: '📅' },
   { name: '　[调试]场地详情　', path: '/app/venue', icon: '🔧' },
+  { name: '　[调试]　', path: '/app/check', icon: '🔧' },
   { name: '　[调试]审批管理　', path: '/app/check', icon: '🔧' }
 ]);
 
