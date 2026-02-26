@@ -38,7 +38,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
 
         String encryptPwd;
-        if ("SYS_ADMIN".equals(user.getRole())) {
+        if ("SYS_ADMIN".equals(user.getRole())||"VENUE_ADMIN".equals(user.getRole())) {
             // 管理员：强制使用 MD5 校验
             encryptPwd = org.springframework.util.DigestUtils.md5DigestAsHex(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         } else {

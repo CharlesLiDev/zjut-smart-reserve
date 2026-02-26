@@ -20,5 +20,5 @@ public interface BookingRecordService extends IService<BookingRecord> {
     IPage<AppointmentVO> getMyAppointments(MyAppointmentQueryDTO queryDTO, Long userId);
     Integer calculateAvailabilityStatus(Long venueId);
     boolean auditApply(Long recordId, Integer status, String rejectReason, Long adminId);
-    Result getAdminRecordList(Integer tab, Long adminId);
+    Result getAdminRecordList(Integer tab, Long adminId, String role);
 }

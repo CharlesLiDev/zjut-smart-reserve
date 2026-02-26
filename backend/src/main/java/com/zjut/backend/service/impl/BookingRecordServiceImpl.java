@@ -15,7 +15,9 @@ import com.zjut.backend.service.BookingRecordService;
 import com.zjut.backend.mapper.BookingRecordMapper;
 import com.zjut.backend.service.NotificationService;
 import com.zjut.backend.service.VenueInfoService;
+import com.zjut.backend.utils.SecurityUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,9 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
     private final BookingRecordMapper bookingRecordMapper;
     private final VenueInfoService venueInfoService;
     private final NotificationService notificationService;
+
+    @Autowired
+    private SecurityUtils securityUtils;
 
     public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper, VenueInfoService venueInfoService, NotificationService notificationService) {
         this.bookingRecordMapper = bookingRecordMapper;
@@ -193,6 +198,17 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         BookingRecord record = getById(recordId);
         if (record == null) throw new RuntimeException("记录不存在");
 
+        String role = securityUtils.getUserRole();
+
+        // 如果是场地管理员，必须检查管辖权
+        if ("VENUE_ADMIN".equals(role)) {
+            // 查询该场地是否归该管理员管
+            VenueInfo venue = venueInfoService.getById(record.getVenueId());
+            if (venue == null || !adminId.equals(venue.getAdminId())) {
+                throw new RuntimeException("权限不足：您无权审批该场地的预约");
+            }
+        }
+
         // 2. 设置审批状态（使用你的状态码：1为驳回，2为通过）
         record.setStatus(status);
         record.setAuditadminid(adminId);
@@ -214,22 +230,33 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
     }
 
     @Override
-    public Result getAdminRecordList(Integer tab, Long adminId) {
-        List<Long> myVenueIds = venueInfoService.list(new LambdaQueryWrapper<VenueInfo>()
-                .eq(VenueInfo::getAdminId,adminId))
-                .stream()
-                .map(VenueInfo::getId)
-                .collect(Collectors.toList());
+    public Result getAdminRecordList(Integer tab, Long adminId, String role) {
+        LambdaQueryWrapper<BookingRecord> recordWrapper = new LambdaQueryWrapper<>();
 
-        if(myVenueIds.isEmpty()){
-            return Result.success(new ArrayList<BookingRecord>());
+        // 只有场地管理员才需要过滤 VenueId
+        if ("VENUE_ADMIN".equals(role)){
+            List<Long> myVenueIds = venueInfoService.list(new LambdaQueryWrapper<VenueInfo>()
+                            .eq(VenueInfo::getAdminId,adminId))
+                    .stream()
+                    .map(VenueInfo::getId)
+                    .collect(Collectors.toList());
+
+            if(myVenueIds.isEmpty()){
+                return Result.success(new ArrayList<BookingRecord>());
+            }
+
+            recordWrapper.in(BookingRecord::getVenueId, myVenueIds);
+        } else if (!"SYS_ADMIN".equals(role)) {
+            // 如果既不是场地管理员也不是系统管理员，直接拦截（安全性兜底）
+            return Result.error("权限不足，无法访问管理列表");
         }
 
-        LambdaQueryWrapper<BookingRecord> recordWrapper = new LambdaQueryWrapper<>();
-        recordWrapper.in(BookingRecord::getVenueId, myVenueIds)
-                .eq(BookingRecord::getStatus, tab) // 0-待审核, 1-已驳回, 2-已通过
-                .orderByDesc(BookingRecord::getCreateTime);
+        if (tab != null) {
+            recordWrapper.eq(BookingRecord::getStatus, tab);
+        }
 
+        // 如果是 "SYS_ADMIN"，直接跳过上面的 if，不加 venueId 限制，即查询全校数据
+        recordWrapper.orderByDesc(BookingRecord::getCreateTime);
         List<BookingRecord> records = this.list(recordWrapper);
 
         return Result.success(records);
@@ -280,7 +307,6 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
 
         System.out.println("通知已成功发送给用户ID: " + record.getUserId());
 
-        // TODO: 以后在这里调用 NotificationService.save() 插入数据库
     }
 }
 

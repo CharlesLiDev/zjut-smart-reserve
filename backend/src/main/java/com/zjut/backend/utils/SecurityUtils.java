@@ -27,4 +27,23 @@ public class SecurityUtils {
         }
         return Long.parseLong(userId.toString());
     }
+
+    public String getUserRole()
+    {
+        // 1. 从请求头获取 Token
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("用户未登录或令牌无效");
+        }
+        String token = authHeader.substring(7);
+
+        // 2. 解析 Token 拿到 Claims
+        Object role = jwtUtils.getClaimsByToken(token).get("role");
+
+        if (role == null) {
+            throw new RuntimeException("令牌中未包含角色信息");
+        }
+
+        return role.toString();
+    }
 }
