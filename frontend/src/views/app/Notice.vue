@@ -40,7 +40,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import NoticeCard from '@/components/NoticeCard.vue';
-import { listNotices } from '@/mock/mockApi';
+import { apiRequest } from '@/api/http';
 
 const notices = ref([]);
 const loading = ref(true);
@@ -50,7 +50,21 @@ onMounted(async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    notices.value = await listNotices();
+    const page = await apiRequest('/api/notifications', {
+      query: { current: 1, size: 100 }
+    });
+    const typeMap = {
+      0: '公告',
+      1: '审批',
+      2: '通知'
+    };
+    notices.value = (page.records ?? []).map((item) => ({
+      id: item.id,
+      type: typeMap[item.type] ?? '通知',
+      time: item.createTime?.replace('T', ' ') ?? '',
+      title: item.title,
+      content: item.content
+    }));
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
   } finally {

@@ -18,25 +18,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import SideNavBar from '@/components/SideNavBar.vue';
 
 const route = useRoute();
 
-// 根据当前路由的 meta 信息或者路径，动态显示页面标题
 const currentRouteName = computed(() => {
-  const titles = {
-    'venues': '场地浏览',
-    'notice': '通知公告',
-    'appointments': '我的预约',
-    'venue': '场地详情',
-  };
-  // 简单匹配路径末尾
-  const pathArr = route.path.split('/');
-  const lastPath = pathArr[pathArr.length - 1];
-  return titles[lastPath] || '欢迎回来';
+  return (route.meta.title as string) || '欢迎回来';
 });
 </script>
 

@@ -70,7 +70,7 @@
                 class="available-block"
                 :style="getScheduleStyle(block.start, block.end)"
               >
-                可预约
+                已占用
               </div>
             </div>
           </div>
@@ -146,7 +146,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { getVenueById, getVenueOccupiedSlots } from '@/mock/mockApi';
+import { apiRequest } from '@/api/http';
 
 const route = useRoute();
 const venueId = computed(() => Number(route.params.id));
@@ -177,20 +177,16 @@ const loadVenue = async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    const data = await getVenueById(venueId.value);
-    if (!data) {
-      loadError.value = `未找到场地：${String(route.params.id)}`;
-      return;
-    }
+    const data = await apiRequest(`/api/venue/${venueId.value}`);
     venueData.value = {
       id: data.id,
       name: data.name,
-      image: data.image || defaultVenueImage,
-      tags: data.tags || [data.type],
+      image: data.imageUrl || defaultVenueImage,
+      tags: [data.type, data.status === 0 ? '可预约' : '维护中'],
       capacity: data.capacity ?? 0,
       area: data.area ?? 0,
       floor: data.floor ?? 0,
-      facilities: data.facilities || data.equipment || []
+      facilities: String(data.equipment ?? '').split(',').filter(Boolean)
     };
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
@@ -204,7 +200,20 @@ const loadSchedule = async () => {
   scheduleLoading.value = true;
   scheduleError.value = '';
   try {
-    currentDaySchedule.value = await getVenueOccupiedSlots(venueData.value.id, currentScheduleDate.value);
+    const records = await apiRequest(`/api/venue/${venueData.value.id}/schedule`, {
+      query: { date: currentScheduleDate.value }
+    });
+    currentDaySchedule.value = records.map((r) => {
+      const [startStr, endStr] = String(r.timeSlot ?? '').split('-');
+      const parseHour = (s) => {
+        const [h, m] = (s || '0:0').trim().split(':').map(Number);
+        return h + (m || 0) / 60;
+      };
+      return {
+        start: parseHour(startStr),
+        end: parseHour(endStr)
+      };
+    });
   } catch (e) {
     scheduleError.value = e instanceof Error ? e.message : String(e);
     currentDaySchedule.value = [];
@@ -268,7 +277,39 @@ const submitBooking = () => {
     alert('请完善必填信息');
     return;
   }
-  alert('预约申请已提交，请等待管理员审核！');
+  if (!form.value.endTime || form.value.endTime <= form.value.startTime) {
+    alert('结束时间必须晚于开始时间');
+    return;
+  }
+  apiRequest('/api/appointments', {
+    method: 'POST',
+    body: {
+      venueId: venueData.value.id,
+      eventName: form.value.activityName,
+      hostUnit: form.value.organizer,
+      exceptNum: Number(form.value.peopleCount),
+      description: form.value.description,
+      bookingDate: form.value.date,
+      timeSlot: `${form.value.startTime}-${form.value.endTime}`
+    }
+  })
+    .then(() => {
+      alert('预约申请已提交，请等待管理员审核');
+      showBookingForm.value = false;
+      form.value = {
+        date: '',
+        startTime: '',
+        endTime: '',
+        activityName: '',
+        organizer: '个人',
+        peopleCount: null,
+        description: ''
+      };
+      loadSchedule();
+    })
+    .catch((e) => {
+      alert(e instanceof Error ? e.message : '预约失败');
+    });
 };
 
 const handleImgError = (e) => {

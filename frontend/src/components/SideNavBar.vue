@@ -1,28 +1,88 @@
-<script setup>
-import { ref, onMounted } from 'vue';
-import { getSidebarConfig } from '@/mock/mockApi';
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { apiRequest } from '@/api/http';
+import { clearAuthSession, getAuthSession, normalizeRole, type AppRole } from '@/utils/auth';
 
-const menuItems = ref([]);
-const user = ref({ avatarText: '', name: '', role: '' });
-const loading = ref(true);
-const loadError = ref('');
+type MenuItem = { name: string; path: string; icon: string };
 
-onMounted(async () => {
-  loading.value = true;
-  loadError.value = '';
-  try {
-    const cfg = await getSidebarConfig();
-    menuItems.value = cfg.menuItems;
-    user.value = cfg.user;
-  } catch (e) {
-    loadError.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    loading.value = false;
-  }
+const router = useRouter();
+const unreadCount = ref(0);
+const currentRole = ref<AppRole>('user');
+
+const roleLabel = computed(() => {
+  if (currentRole.value === 'admin') return '场地管理员';
+  if (currentRole.value === 'super_admin') return '系统管理员';
+  return '师生用户';
 });
 
-const handleLogout = () => {
-  console.log('执行退出逻辑');
+const userInfo = computed(() => {
+  const session = getAuthSession();
+  const name = session?.realName || session?.username || '未登录用户';
+  return {
+    avatarText: name.slice(0, 1),
+    name
+  };
+});
+
+const menuItems = computed<MenuItem[]>(() => {
+  if (currentRole.value === 'admin') {
+    return [
+      { name: '通知公告', path: '/app/notice', icon: '📢' },
+      { name: '审批管理', path: '/app/admin/approvals', icon: '✅' },
+      { name: '场地管理', path: '/app/admin/venues', icon: '🏟️' },
+      { name: '数据看板', path: '/app/admin/dashboard', icon: '📊' },
+      { name: '公告发布', path: '/app/announcements', icon: '📝' }
+    ];
+  }
+
+  if (currentRole.value === 'super_admin') {
+    return [
+      { name: '通知公告', path: '/app/notice', icon: '📢' },
+      { name: '场地浏览', path: '/app/venues', icon: '🔍' },
+      { name: '账号管理', path: '/app/super/accounts', icon: '👤' },
+      { name: '公告发布', path: '/app/announcements', icon: '📝' }
+    ];
+  }
+
+  return [
+    { name: '通知公告', path: '/app/notice', icon: '📢' },
+    { name: '场地浏览', path: '/app/venues', icon: '🔍' },
+    { name: '我的预约', path: '/app/appointments', icon: '📅' }
+  ];
+});
+
+const loadUnreadCount = async () => {
+  try {
+    const page = await apiRequest<{ records?: Array<{ isRead?: number }> }>('/api/notifications', {
+      query: { current: 1, size: 50 }
+    });
+    const records = page?.records ?? [];
+    unreadCount.value = records.filter((i) => i.isRead === 0).length;
+  } catch {
+    unreadCount.value = 0;
+  }
+};
+
+onMounted(async () => {
+  const session = getAuthSession();
+  if (!session?.token) {
+    router.replace('/login');
+    return;
+  }
+  currentRole.value = normalizeRole(session.role);
+  await loadUnreadCount();
+});
+
+const handleLogout = async () => {
+  try {
+    await apiRequest('/api/logout', { method: 'POST' });
+  } catch {
+    // ignore logout API failures in front-end
+  } finally {
+    clearAuthSession();
+    router.replace('/login');
+  }
 };
 </script>
 
@@ -38,26 +98,26 @@ const handleLogout = () => {
 
     <div class="user-card">
       <div class="avatar">
-        <span>{{ user.avatarText }}</span>
+        <span>{{ userInfo.avatarText }}</span>
       </div>
       <div class="user-info">
-        <p class="user-name">{{ user.name }}</p>
-        <p class="user-role">{{ user.role }}</p>
+        <p class="user-name">{{ userInfo.name }}</p>
+        <p class="user-role">{{ roleLabel }}</p>
       </div>
     </div>
 
     <div class="menu-list">
-      <div v-if="loadError" class="menu-load-state">加载失败：{{ loadError }}</div>
-      <div v-else-if="loading" class="menu-load-state">正在加载菜单...</div>
       <router-link
-        v-else
         v-for="item in menuItems"
         :key="item.path"
         :to="item.path"
         class="menu-item"
       >
         <span class="icon">{{ item.icon }}</span>
-        <span class="label">{{ item.name }}</span>
+        <span class="label">
+          {{ item.name }}
+          <span v-if="item.path === '/app/notice' && unreadCount > 0" class="notice-dot"></span>
+        </span>
         <div class="active-dot"></div>
       </router-link>
     </div>
@@ -179,6 +239,15 @@ const handleLogout = () => {
   color: #999;
   font-size: 0.8rem;
   padding: 8px 12px;
+}
+
+.notice-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  background: #e74c3c;
 }
 
 .menu-item {

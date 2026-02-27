@@ -6,6 +6,17 @@
         <span>共 {{ appointments.length }} 条预约记录</span>
       </div>
     </header>
+    <div class="tab-group">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="tab-btn"
+        :class="{ active: currentTab === tab.key }"
+        @click="switchTab(tab.key)"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
 
     <div class="list-container">
       <div v-if="loadError" class="empty-state">
@@ -28,23 +39,60 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import AppointmentCard from '@/components/AppointmentCard.vue';
-import { listAppointments } from '@/mock/mockApi';
+import { apiRequest } from '@/api/http';
 
 const appointments = ref([]);
 const loading = ref(true);
 const loadError = ref('');
+const currentTab = ref('ongoing');
+const tabs = [
+  { key: 'ongoing', label: '进行中' },
+  { key: 'ended', label: '已结束' },
+  { key: 'rejected', label: '已驳回' }
+];
 
-onMounted(async () => {
+const loadAppointments = async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    appointments.value = await listAppointments();
+    const page = await apiRequest('/api/appointments', {
+      query: {
+        current: 1,
+        size: 100,
+        tab: currentTab.value
+      }
+    });
+
+    const statusMap = {
+      0: '待审核',
+      1: '已驳回',
+      2: '审核通过',
+      3: '已使用',
+      4: '已取消',
+      5: '已结束'
+    };
+
+    appointments.value = (page.records ?? []).map((item) => ({
+      eventName: item.eventName,
+      location: item.location || `场地#${item.venueId ?? '-'}`,
+      date: item.bookingDate,
+      timeSlot: item.timeSlot,
+      status: statusMap[item.status] ?? '未知状态'
+    }));
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
   }
-});
+};
+
+const switchTab = (tab) => {
+  if (currentTab.value === tab) return;
+  currentTab.value = tab;
+  loadAppointments();
+};
+
+onMounted(loadAppointments);
 </script>
 
 <style scoped>
@@ -75,6 +123,28 @@ onMounted(async () => {
 .list-container {
   display: flex;
   flex-direction: column;
+}
+
+.tab-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tab-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  border-color: #99cdd8;
+  background: #99cdd8;
+  color: #fff;
 }
 
 .empty-state {

@@ -10,7 +10,9 @@ import com.zjut.backend.mapper.SysUserMapper;
 import com.zjut.backend.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 /**
@@ -37,30 +39,28 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             return Result.error("该账号已被禁用，请联系管理员");
         }
 
-        String encryptPwd;
-        if ("SYS_ADMIN".equals(user.getRole())||"VENUE_ADMIN".equals(user.getRole())) {
-            // 管理员：强制使用 MD5 校验
-            encryptPwd = org.springframework.util.DigestUtils.md5DigestAsHex(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        } else {
-            // 学生：如果你之前的学生密码是明文，这里直接用 password；如果也是 MD5，就统一加密
-            encryptPwd = password;
-        }
-
-        if (!user.getPassword().equals(encryptPwd)) {
+        String md5Password = DigestUtils.md5DigestAsHex(password.getBytes(StandardCharsets.UTF_8));
+        boolean match = password.equals(user.getPassword()) || md5Password.equalsIgnoreCase(user.getPassword());
+        if (!match) {
             return Result.error("用户名或密码错误");
         }
-        if(user.getIsFirstLogin() != null && user.getIsFirstLogin() == 1){
-            return Result.forcePasswordChange(user);
-        }
-
         java.util.Map<String, Object> claims = new java.util.HashMap<>();
         claims.put("userId", user.getId());
         claims.put("role", user.getRole());
 
         String token = jwtUtils.generateToken(claims);
 
+        if(user.getIsFirstLogin() != null && user.getIsFirstLogin() == 1){
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            user.setPassword(null);
+            data.put("token", token);
+            data.put("user", user);
+            return Result.forcePasswordChange(data);
+        }
+
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         data.put("token", token);
+        user.setPassword(null);
         data.put("user", user);
 
         return Result.success(data);
@@ -84,7 +84,4 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return Result.error("注册失败，请联系管理员");
     }
 }
-
-
-
 

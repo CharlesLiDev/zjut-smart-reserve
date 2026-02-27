@@ -78,6 +78,16 @@ public class VenueController {
         return Result.success(result);
     }
 
+    @GetMapping("/{id}")
+    public Result getVenueById(@PathVariable Long id) {
+        VenueInfo venueInfo = venueService.getById(id);
+        if (venueInfo == null) {
+            return Result.error("场地不存在");
+        }
+        venueInfo.setAvailabilityStatus(bookingRecordService.calculateAvailabilityStatus(id));
+        return Result.success(venueInfo);
+    }
+
     /**
      * 查询场地的预约记录
      * @param id 场地ID
@@ -124,6 +134,23 @@ public class VenueController {
         List<VenueVO> venueList = venueInfoService.getVenueListWithAdmin();
 
         return Result.success(venueList);
+    }
+
+    @GetMapping("/my/list")
+    public Result getMyVenueList() {
+        String role = securityUtils.getUserRole();
+        Long userId = securityUtils.getCurrentUserId();
+
+        if ("SYS_ADMIN".equals(role)) {
+            return Result.success(venueInfoService.list());
+        }
+        if (!"VENUE_ADMIN".equals(role)) {
+            return Result.error("权限不足");
+        }
+
+        List<VenueInfo> myVenues = venueInfoService.list(new LambdaQueryWrapper<VenueInfo>()
+                .eq(VenueInfo::getAdminId, userId));
+        return Result.success(myVenues);
     }
 
     @PutMapping("{id}/status")
@@ -179,4 +206,3 @@ public class VenueController {
     @GetMapping("/test")
     public String test() { return "ok"; }
 }
-

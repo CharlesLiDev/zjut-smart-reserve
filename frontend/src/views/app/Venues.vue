@@ -55,10 +55,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router'; // 引入路由
 import VenueCard from '@/components/VenueCard.vue';
-import { listVenues } from '@/mock/mockApi';
+import { apiRequest } from '@/api/http';
 
 const router = useRouter(); // 初始化路由实例
 
@@ -68,29 +68,55 @@ const activeTag = ref('全部');
 const allVenues = ref([]);
 const loading = ref(true);
 const loadError = ref('');
+let timer = null;
 
-onMounted(async () => {
+const loadVenues = async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    allVenues.value = await listVenues();
+    const type = activeTag.value === '全部' ? undefined : activeTag.value;
+    const page = await apiRequest('/api/venue', {
+      query: {
+        name: searchQuery.value || undefined,
+        type,
+        page: 1,
+        size: 100
+      }
+    });
+
+    allVenues.value = (page.records ?? []).map((v) => ({
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      capacity: v.capacity,
+      location: v.location,
+      equipment: String(v.equipment ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      status: v.status === 0 ? '可预约' : '维护中',
+      image: v.imageUrl || undefined
+    }));
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
   }
+};
+
+onMounted(loadVenues);
+
+watch([searchQuery, activeTag], () => {
+  if (timer) window.clearTimeout(timer);
+  timer = window.setTimeout(loadVenues, 300);
 });
 
 const filteredVenues = computed(() => {
-  return allVenues.value.filter(v => {
-    const matchesSearch = v.name.includes(searchQuery.value) || v.location.includes(searchQuery.value);
-    const matchesTag = activeTag.value === '全部' || v.type === activeTag.value;
-    return matchesSearch && matchesTag;
-  });
+  return allVenues.value;
 });
 
 const handleSearch = () => {
-  console.log('Searching for:', searchQuery.value);
+  loadVenues();
 };
 
 /**
