@@ -1,8 +1,8 @@
 <template>
-  <div class="venue-card">
+  <div class="venue-card" @click="$emit('click')">
     <div class="venue-image">
       <div class="status-tag" :class="statusClass">{{ status }}</div>
-      <img :src="image || defaultImage" alt="venue photo" />
+      <img :src="image || defaultImage" alt="venue photo" @error="handleImgError" />
     </div>
 
     <div class="venue-info">
@@ -28,7 +28,11 @@
 <script setup>
 import { computed } from 'vue';
 
+// 定义子组件可以发出的事件
+defineEmits(['click']);
+
 const props = defineProps({
+  id: [Number, String], // 建议把 id 也定义在 props 里
   name: String,
   type: String,
   capacity: Number,
@@ -38,11 +42,19 @@ const props = defineProps({
   image: String
 });
 
-const defaultImage = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=400';
+const defaultImage =
+  'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=400';
 
 const statusClass = computed(() => {
   return props.status === '可预约' ? 'status-available' : 'status-busy';
 });
+
+const handleImgError = (e) => {
+  const target = e.target;
+  if (target && 'src' in target) {
+    target.src = defaultImage;
+  }
+};
 </script>
 
 <style scoped>
@@ -53,11 +65,19 @@ const statusClass = computed(() => {
   border: 1px solid #f0f0f0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  /* 防止图片被点击时产生蓝色高亮 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .venue-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 12px 24px rgba(101, 113, 102, 0.12);
+}
+
+/* 增加点击时的物理反馈感 */
+.venue-card:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 
 .venue-image {
@@ -82,10 +102,11 @@ const statusClass = computed(() => {
   font-weight: 600;
   backdrop-filter: blur(8px);
   color: white;
+  z-index: 1;
 }
 
-.status-available { background: rgba(153, 205, 216, 0.9); } /* 冰雾清晨 */
-.status-busy { background: rgba(101, 113, 102, 0.7); }      /* 深林石墨 */
+.status-available { background: rgba(153, 205, 216, 0.9); }
+.status-busy { background: rgba(101, 113, 102, 0.7); }
 
 .venue-info {
   padding: 16px;
@@ -102,6 +123,7 @@ const statusClass = computed(() => {
   margin: 4px 0 12px 0;
   font-size: 1.1rem;
   color: #657166;
+  font-weight: 600;
 }
 
 .info-details {
@@ -123,7 +145,7 @@ const statusClass = computed(() => {
 }
 
 .eq-tag {
-  background: #F0EDD3; /* 暖阳米色 */
+  background: #F0EDD3;
   color: #657166;
   font-size: 0.7rem;
   padding: 2px 8px;

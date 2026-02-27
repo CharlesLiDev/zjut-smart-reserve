@@ -26,47 +26,61 @@
       </div>
     </header>
 
-    <div class="venue-grid">
-      <VenueCard
-        v-for="venue in filteredVenues"
-        :key="venue.id"
-        v-bind="venue"
-        @click="goToDetail(venue.id)"
-      />
+    <div v-if="loadError" class="empty-placeholder">
+      <p>加载失败：{{ loadError }}</p>
+      <button class="reset-btn" @click="searchQuery = ''; activeTag = '全部'">重置筛选</button>
     </div>
 
-    <div v-if="filteredVenues.length === 0" class="empty-placeholder">
-      <div class="empty-icon">🍃</div>
-      <p>暂无符合条件的场地</p>
-      <button @click="searchQuery = ''; activeTag = '全部'" class="reset-btn">清除所有筛选</button>
+    <div v-else>
+      <div v-if="loading" class="empty-placeholder">
+        <p>正在加载场地...</p>
+      </div>
+
+      <div v-else class="venue-grid">
+        <VenueCard
+          v-for="venue in filteredVenues"
+          :key="venue.id"
+          v-bind="venue"
+          @click="goToDetail(venue.id)"
+        />
+      </div>
+
+      <div v-if="!loading && filteredVenues.length === 0" class="empty-placeholder">
+        <div class="empty-icon">🍃</div>
+        <p>暂无符合条件的场地</p>
+        <button @click="searchQuery = ''; activeTag = '全部'" class="reset-btn">清除所有筛选</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router'; // 引入路由
 import VenueCard from '@/components/VenueCard.vue';
+import { listVenues } from '@/mock/mockApi';
+
+const router = useRouter(); // 初始化路由实例
 
 const searchQuery = ref('');
 const activeTag = ref('全部');
 
-// 模拟 12 个数据，以便观察一排 6 个的效果
-const allVenues = ref([
-  { id: 1, name: '文辉楼 401', type: '教室', capacity: 120, location: '文辉楼', equipment: ['投影', '音响'], status: '可预约' },
-  { id: 2, name: '羽毛球 03', type: '体育馆', capacity: 4, location: '体育中心', equipment: ['地板'], status: '被占用' },
-  { id: 3, name: '图书馆 302', type: '会议室', capacity: 8, location: '图书馆', equipment: ['白板', '插座'], status: '可预约' },
-  { id: 4, name: '报告厅 A', type: '教室', capacity: 300, location: '大礼堂', equipment: ['大屏', '空调'], status: '可预约' },
-  { id: 5, name: '网球场 01', type: '体育馆', capacity: 2, location: '南操场', equipment: ['室外'], status: '可预约' },
-  { id: 6, name: '研讨间 10', type: '会议室', capacity: 6, location: '信息楼', equipment: ['电视'], status: '被占用' },
-  { id: 7, name: '文辉楼 405', type: '教室', capacity: 60, location: '文辉楼', equipment: ['投影'], status: '可预约' },
-  { id: 8, name: '篮球场 02', type: '体育馆', capacity: 20, location: '体育中心', equipment: ['灯光'], status: '可预约' },
-  { id: 9, name: '信电 202', type: '会议室', capacity: 15, location: '信息楼', equipment: ['圆桌'], status: '可预约' },
-  { id: 10, name: '创新实验室', type: '教室', capacity: 40, location: '实验楼', equipment: ['电脑', '3D打印'], status: '可预约' },
-  { id: 11, name: '琴房 08', type: '体育馆', capacity: 1, location: '艺术楼', equipment: ['钢琴'], status: '被占用' },
-  { id: 12, name: '多功能厅', type: '会议室', capacity: 100, location: '学生活动中心', equipment: ['舞台'], status: '可预约' }
-]);
+const allVenues = ref([]);
+const loading = ref(true);
+const loadError = ref('');
 
-// 组合搜索与标签过滤逻辑
+onMounted(async () => {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    allVenues.value = await listVenues();
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    loading.value = false;
+  }
+});
+
 const filteredVenues = computed(() => {
   return allVenues.value.filter(v => {
     const matchesSearch = v.name.includes(searchQuery.value) || v.location.includes(searchQuery.value);
@@ -79,15 +93,17 @@ const handleSearch = () => {
   console.log('Searching for:', searchQuery.value);
 };
 
+/**
+ * 跳转至详情页
+ * 路径格式：/app/venue/101
+ */
 const goToDetail = (id) => {
-  console.log('Navigate to detail of venue:', id);
-  // 后续这里会用到 router.push(`/app/venues/${id}`)
+  router.push(`/app/venue/${id}`);
 };
 </script>
 
 <style scoped>
 .venues-container {
-  /* 移除 max-width 限制，让网格在宽屏下能伸展出 6 列 */
   width: 100%;
 }
 
@@ -103,7 +119,7 @@ const goToDetail = (id) => {
   border-radius: 14px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.03);
   border: 1px solid #eee;
-  max-width: 600px; /* 搜索框不宜过长，居左对齐 */
+  max-width: 600px;
 }
 
 .search-bar input {
@@ -160,19 +176,17 @@ const goToDetail = (id) => {
   color: #657166;
 }
 
-/* 核心：网格布局控制 */
 .venue-grid {
   display: grid;
-  /* 关键：调整 minmax 最小值为 160px，并设置最大列数为 6 */
-  /* repeat(auto-fill, ...) 会自动填满宽度，我们通过调整容器和间距来实现 6 列 */
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 20px;
+  /* 响应式网格：在保证最小宽度的前提下自动填充 */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
 }
 
-/* 针对大屏幕（主应用右侧宽度足够时）的微调 */
-@media (min-width: 1400px) {
+@media (min-width: 1600px) {
   .venue-grid {
-    grid-template-columns: repeat(5, 1fr); /* 强制在极宽屏幕下固定 6 列 */
+    /* 极宽屏幕下可以固定 5 或 6 列 */
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 

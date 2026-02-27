@@ -1,0 +1,25 @@
+全站业务数据改为本地 JSON mock
+
+JSON 数据：统一放到 frontend/public/mock/ 下（开发/打包后都能通过 BASE_URL + /mock/*.json 访问）
+读取入口：frontend/src/mock/mockApi.ts（各页面只调用这里的函数）
+底层 fetch + 缓存：frontend/src/mock/mockClient.ts
+
+已替换为 mock 的页面/组件
+
+场地列表：frontend/src/views/app/Venues.vue（从 mock/venues.json 读）
+
+场地详情 + 排期：frontend/src/views/app/VenueDetail.vue（详情读 mock/venues.json，排期读 mock/venue-schedules.json）
+
+通知公告：frontend/src/views/app/Notice.vue、frontend/src/views/NoticePage.vue（读 mock/notices.json）
+
+我的预约：frontend/src/views/app/Appointments.vue（读 mock/appointments.json）
+
+侧边栏（菜单+用户卡片）：frontend/src/components/SideNavBar.vue（读 mock/sidebar.json）
+
+
+要改数据，直接改这些 JSON
+frontend/public/mock/venues.json
+frontend/public/mock/venue-schedules.json
+frontend/public/mock/notices.json
+frontend/public/mock/appointments.json
+frontend/public/mock/sidebar.json

@@ -1,15 +1,25 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { getSidebarConfig } from '@/mock/mockApi';
 
-// 预留普通用户菜单列表
-const menuItems = ref([
-  { name: '　[用户]通知公告　', path: '/app/notice', icon: '📢' },
-  { name: '　[用户]场地浏览　', path: '/app/venues', icon: '🔍' },
-  { name: '　[用户]我的预约　', path: '/app/appointments', icon: '📅' },
-  { name: '　[调试]场地详情　', path: '/app/venue', icon: '🔧' },
-  { name: '　[调试]　', path: '/app/check', icon: '🔧' },
-  { name: '　[调试]审批管理　', path: '/app/check', icon: '🔧' }
-]);
+const menuItems = ref([]);
+const user = ref({ avatarText: '', name: '', role: '' });
+const loading = ref(true);
+const loadError = ref('');
+
+onMounted(async () => {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    const cfg = await getSidebarConfig();
+    menuItems.value = cfg.menuItems;
+    user.value = cfg.user;
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    loading.value = false;
+  }
+});
 
 const handleLogout = () => {
   console.log('执行退出逻辑');
@@ -28,16 +38,19 @@ const handleLogout = () => {
 
     <div class="user-card">
       <div class="avatar">
-        <span>张</span>
+        <span>{{ user.avatarText }}</span>
       </div>
       <div class="user-info">
-        <p class="user-name">张三</p>
-        <p class="user-role">DevAdmin</p>
+        <p class="user-name">{{ user.name }}</p>
+        <p class="user-role">{{ user.role }}</p>
       </div>
     </div>
 
     <div class="menu-list">
+      <div v-if="loadError" class="menu-load-state">加载失败：{{ loadError }}</div>
+      <div v-else-if="loading" class="menu-load-state">正在加载菜单...</div>
       <router-link
+        v-else
         v-for="item in menuItems"
         :key="item.path"
         :to="item.path"
@@ -160,6 +173,12 @@ const handleLogout = () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.menu-load-state {
+  color: #999;
+  font-size: 0.8rem;
+  padding: 8px 12px;
 }
 
 .menu-item {

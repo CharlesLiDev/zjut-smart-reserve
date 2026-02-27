@@ -41,12 +41,15 @@
       </div>
     </div>
 
-    <p class="hint">💡 点击轴上空白区域选择时间，默认选择 1 小时</p>
+    <p v-if="loadError" class="hint">加载排期失败：{{ loadError }}</p>
+    <p v-else-if="loading" class="hint">正在加载排期...</p>
+    <p v-else class="hint">💡 点击轴上空白区域选择时间，默认选择 1 小时</p>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { getOccupiedSlotsByDate } from '@/mock/mockApi';
 
 const emit = defineEmits(['timeSelected']);
 
@@ -75,12 +78,28 @@ const nextSevenDays = computed(() => {
 // --- 排期逻辑 ---
 const timelineRef = ref(null);
 const userSelection = ref(null);
+const occupiedSlots = ref([]);
+const loading = ref(true);
+const loadError = ref('');
 
-// 模拟已占用时间段 (格式：小时的小数形式，如 8.5 代表 08:30)
-const occupiedSlots = ref([
-  { id: 1, start: 8, end: 10 },
-  { id: 2, start: 14, end: 15.5 }
-]);
+const selectedFullDate = computed(() => nextSevenDays.value[selectedDateIndex.value]?.fullDate || '');
+
+const loadSlots = async () => {
+  if (!selectedFullDate.value) return;
+  loading.value = true;
+  loadError.value = '';
+  try {
+    occupiedSlots.value = await getOccupiedSlotsByDate(selectedFullDate.value);
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : String(e);
+    occupiedSlots.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(loadSlots);
+watch(selectedFullDate, loadSlots);
 
 const getSlotStyle = (start, end) => {
   const totalHours = END_HOUR - START_HOUR;
@@ -93,6 +112,7 @@ const getSlotStyle = (start, end) => {
 };
 
 const handleTimelineClick = (e) => {
+  if (!timelineRef.value) return;
   const rect = timelineRef.value.getBoundingClientRect();
   const offsetX = e.clientX - rect.left;
   const percentage = offsetX / rect.width;
@@ -100,15 +120,12 @@ const handleTimelineClick = (e) => {
   // 将点击位置转换为具体小时 (精确到 0.5 小时)
   const clickedHour = START_HOUR + Math.round(percentage * (END_HOUR - START_HOUR) * 2) / 2;
 
-  // 简单的冲突检查（略，实际开发需更严谨）
   const selectionStart = clickedHour;
   const selectionEnd = clickedHour + 1; // 默认选 1 小时
 
   if (selectionEnd <= END_HOUR) {
-    userSelection.ref = { start: selectionStart, end: selectionEnd }; // 此处逻辑微调
     userSelection.value = { start: selectionStart, end: selectionEnd };
 
-    // 格式化时间发送给父组件
     const formatTime = (h) => {
       const hh = Math.floor(h).toString().padStart(2, '0');
       const mm = h % 1 === 0 ? '00' : '30';
@@ -116,7 +133,7 @@ const handleTimelineClick = (e) => {
     };
 
     emit('timeSelected', {
-      date: nextSevenDays.value[selectedDateIndex.value].fullDate,
+      date: selectedFullDate.value,
       timeRange: `${formatTime(selectionStart)} - ${formatTime(selectionEnd)}`
     });
   }
@@ -124,7 +141,7 @@ const handleTimelineClick = (e) => {
 
 const selectDate = (index) => {
   selectedDateIndex.value = index;
-  userSelection.value = null; // 切换日期清空选中
+  userSelection.value = null;
 };
 </script>
 
@@ -222,3 +239,4 @@ const selectDate = (index) => {
 }
 .hint { font-size: 0.75rem; color: #bdc3c7; margin-top: 15px; text-align: center; }
 </style>
+

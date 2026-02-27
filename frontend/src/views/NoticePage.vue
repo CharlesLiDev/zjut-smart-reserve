@@ -5,7 +5,11 @@
       <button class="read-all-btn">全部标记为已读</button>
     </div>
 
+    <p v-if="loadError" style="color:#999;">加载失败：{{ loadError }}</p>
+    <p v-else-if="loading" style="color:#999;">正在加载通知...</p>
+
     <NoticeCard
+      v-else
       v-for="item in noticeList"
       :key="item.id"
       :type="item.type"
@@ -17,14 +21,25 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
 import NoticeCard from '@/components/NoticeCard.vue';
+import { listNotices, type Notice } from '@/mock/mockApi';
 
-// 模拟后端返回的数据
-const noticeList = [
-  { id: 1, type: '公告', title: '2026春季场地预约正式开放', time: '10:00', content: '各位师生，本学期场地预约系统已全面上线，请点击查看详情。' },
-  { id: 2, type: '审批', title: '预约申请已通过', time: '昨天', content: '您预约的“田径场”申请已由管理员审批通过。' },
-  { id: 3, type: '通知', title: '场地临时关闭说明', time: '2026-02-19', content: '由于设备维护，游泳馆将于本周五暂停开放。' }
-];
+const noticeList = ref<Notice[]>([]);
+const loading = ref(true);
+const loadError = ref('');
+
+onMounted(async () => {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    noticeList.value = await listNotices();
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <style scoped>

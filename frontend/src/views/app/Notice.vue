@@ -5,7 +5,18 @@
     </div>
 
     <div class="notice-list">
+      <div v-if="loadError" class="empty-state">
+        <span>⚠️</span>
+        <p>加载失败：{{ loadError }}</p>
+      </div>
+
+      <div v-else-if="loading" class="empty-state">
+        <span>⏳</span>
+        <p>正在加载通知...</p>
+      </div>
+
       <NoticeCard
+        v-else
         v-for="(notice, index) in notices"
         :key="index"
         :type="notice.type"
@@ -16,7 +27,7 @@
       />
     </div>
 
-    <div class="list-footer">
+    <div v-if="!loading && !loadError" class="list-footer">
       <p v-if="notices.length > 0">- 已显示全部通知 -</p>
       <div v-else class="empty-state">
         <span>🍃</span>
@@ -27,72 +38,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import NoticeCard from '@/components/NoticeCard.vue';
+import { listNotices } from '@/mock/mockApi';
 
-// 模拟通知数据
-const notices = ref([
-  {
-    type: '审批',
-    time: '2026-02-25 19:45',
-    title: '预约申请已通过：文辉楼 201',
-    content: '您的预约申请（编号：REQ2026022501）已由系统自动审批通过。使用时间：明天 08:00 - 10:00。'
-  },
-  {
-    type: '通知',
-    time: '2026-02-25 15:20',
-    title: '临时清场通知：羽毛球馆',
-    content: '因承办校级体育赛事，体育馆所有羽毛球场地将于本周六 14:00 后暂停使用，已预约用户将获得积分补偿。'
-  },
-  {
-    type: '公告',
-    time: '2026-02-25 09:00',
-    title: '智约工大 V1.5 版本更新说明',
-    content: '本次更新优化了移动端适配，新增了场地详情页的实景缩略图浏览功能，提升了加载速度。'
-  },
-  {
-    type: '审批',
-    time: '2026-02-24 17:10',
-    title: '预约驳回：报告厅 A',
-    content: '非常抱歉，由于该时段有大型行政会议冲突，管理员驳回了您的申请。您可以尝试预约其它相近时段。'
-  },
-  {
-    type: '通知',
-    time: '2026-02-24 11:00',
-    title: '多媒体设备维护公告',
-    content: '信息楼 3 层的投影设备将于明日进行例行清扫与灯泡更换，期间可能导致部分教室多媒体功能无法使用。'
-  },
-  {
-    type: '公告',
-    time: '2026-02-23 14:00',
-    title: '关于诚信预约制度的实施方案',
-    content: '为减少场地资源浪费，系统将正式引入诚信分机制。多次预约未到场且未及时取消者将限制预约权限。'
-  },
-  {
-    type: '审批',
-    time: '2026-02-23 08:30',
-    title: '预约成功：图书馆研讨室 302',
-    content: '审批通过。请通过“我的预约”页面查看签到二维码，进入图书馆后需在门口进行扫码核销。'
-  },
-  {
-    type: '通知',
-    time: '2026-02-22 20:15',
-    title: '冬季电力维护：南校区体育场',
-    content: '因电路老化检修，南校区室外篮球场灯光设施将在今晚 21:00 提前关闭，请同学们注意安全。'
-  },
-  {
-    type: '审批',
-    time: '2026-02-22 10:00',
-    title: '预约待确认：创新实验室',
-    content: '由于该场地涉及精密仪器使用，需要场地管理员进行二次人工核验，请耐心等待审批结果通知。'
-  },
-  {
-    type: '公告',
-    time: '2026-02-21 16:45',
-    title: '寒假期间场地开放安排建议征集',
-    content: '欢迎广大师生对即将到来的寒假场地开放方案提出宝贵意见，您可以通过个人中心的反馈通道进行提交。'
+const notices = ref([]);
+const loading = ref(true);
+const loadError = ref('');
+
+onMounted(async () => {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    notices.value = await listNotices();
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    loading.value = false;
   }
-]);
+});
 
 const unreadCount = computed(() => notices.value.length);
 
