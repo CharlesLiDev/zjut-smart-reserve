@@ -1,0 +1,19 @@
+{
+  "user": { "avatarText": "张", "name": "张三", "role": "DevAdmin" },
+  "menuItems": [
+    { "name": "　[用户] 通知公告　", "path": "/app/notice", "icon": "📢" },
+    { "name": "　[用户] 场地浏览　", "path": "/app/venues", "icon": "🔍" },
+    { "name": "　[用户] 我的预约　", "path": "/app/appointments", "icon": "📅" },
+    { "name": "　[用户] 修改密码　", "path": "/app/change-password", "icon": "🔑" },
+
+    { "name": "　[场地管理员] 审批管理　", "path": "/app/admin/approvals", "icon": "✅" },
+    { "name": "　[场地管理员] 场地管理　", "path": "/app/admin/venues", "icon": "🏟️" },
+    { "name": "　[场地管理员] 数据看板　", "path": "/app/admin/dashboard", "icon": "📊" },
+
+    { "name": "　[系统管理员] 账号管理　", "path": "/app/super/accounts", "icon": "👤" },
+    { "name": "　[系统管理员] 公告发布　", "path": "/app/announcements", "icon": "📝" },
+
+    { "name": "　[调试] 场地详情示例　", "path": "/app/venue/101", "icon": "🔧" }
+  ]
+}
+
