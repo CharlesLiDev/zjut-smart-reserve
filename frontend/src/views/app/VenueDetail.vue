@@ -31,9 +31,9 @@
               </div>
               <div class="info-list">
                 <div class="info-item">👤 容纳 {{ venueData.capacity }} 人</div>
-                <div class="info-item">📐 面积 {{ venueData.area }} ㎡</div>
-                <div class="info-item">🏢 楼层 {{ venueData.floor }} 层</div>
-                <div class="info-item">🔌 设施：{{ venueData.facilities.join(' / ') }}</div>
+                <div class="info-item">📍 详细地址：{{ venueData.detailedAddress || venueData.location || '未填写' }}</div>
+                <div class="info-item">📝 场地说明：{{ venueData.description || '未填写' }}</div>
+                <div class="info-item">🔌 设施：{{ venueData.facilities.length ? venueData.facilities.join(' / ') : '未填写' }}</div>
               </div>
             </div>
           </div>
@@ -179,8 +179,9 @@ const venueData = ref({
   image: '',
   tags: [],
   capacity: 0,
-  area: 0,
-  floor: 0,
+  location: '',
+  detailedAddress: '',
+  description: '',
   facilities: []
 });
 
@@ -198,8 +199,9 @@ const loadVenue = async () => {
       image: data.imageUrl || defaultVenueImage,
       tags: [data.type, data.status === 0 ? '可预约' : '维护中'],
       capacity: data.capacity ?? 0,
-      area: data.area ?? 0,
-      floor: data.floor ?? 0,
+      location: data.location || '',
+      detailedAddress: data.location || '',
+      description: data.description || '',
       facilities: String(data.equipment ?? '').split(',').filter(Boolean)
     };
   } catch (e) {

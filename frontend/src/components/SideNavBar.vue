@@ -182,7 +182,7 @@ const handleLogout = async () => {
 .logo-icon {
   width: 40px; /* 稍微增大logo */
   height: 40px;
-  background: linear-gradient(135deg, #99CDD8, #657166);
+  background: url('/zjut.png') center center / cover no-repeat;
   border-radius: 10px; /* 稍微增大圆角 */
   flex-shrink: 0; /* 防止被压缩 */
 }
@@ -272,12 +272,26 @@ const handleLogout = async () => {
 .menu-item {
   display: flex;
   align-items: center;
+  gap: 10px;
   padding: 12px 16px;
   border-radius: 12px;
   text-decoration: none;
   color: #657166;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+}
+
+.menu-item .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  line-height: 1;
+}
+
+.menu-item .label {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* 悬停效果 */
