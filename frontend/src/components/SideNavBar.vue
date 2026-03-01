@@ -39,7 +39,8 @@ const menuItems = computed<MenuItem[]>(() => {
   if (currentRole.value === 'super_admin') {
     return [
       { name: '通知公告', path: '/app/notice', icon: '📢' },
-      { name: '场地浏览', path: '/app/venues', icon: '🔍' },
+      { name: '预约总览', path: '/app/super/overview', icon: '📚' },
+      { name: '场地总览', path: '/app/super/venues', icon: '🏟️' },
       { name: '账号管理', path: '/app/super/accounts', icon: '👤' },
       { name: '公告发布', path: '/app/announcements', icon: '📝' }
     ];

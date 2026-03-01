@@ -293,8 +293,9 @@ const submitBooking = () => {
       timeSlot: `${form.value.startTime}-${form.value.endTime}`
     }
   })
-    .then(() => {
-      alert('预约申请已提交，请等待管理员审核');
+    .then((msg) => {
+      const message = typeof msg === 'string' ? msg : '预约申请提交成功';
+      alert(message);
       showBookingForm.value = false;
       form.value = {
         date: '',

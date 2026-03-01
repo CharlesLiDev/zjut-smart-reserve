@@ -45,14 +45,15 @@
               <td>{{ v.location }}</td>
               <td>{{ v.capacity }}</td>
               <td>
-                <span class="status-pill" :class="v.status === '可预约' ? 'status-ok' : 'status-busy'">
-                  {{ v.status }}
+                <span class="status-pill" :class="v.statusText === '可预约' ? 'status-ok' : 'status-busy'">
+                  {{ v.statusText }}
                 </span>
               </td>
               <td class="right">
-                <button class="text-btn">编辑</button>
+                <button class="text-btn" @click="openEdit(v)">编辑</button>
+                <button class="text-btn" @click="openBlock(v)">维护时段</button>
                 <button class="text-btn danger" @click="toggleStatus(v)">
-                  {{ v.status === '可预约' ? '临时关闭' : '恢复开放' }}
+                  {{ v.statusText === '可预约' ? '临时关闭' : '恢复开放' }}
                 </button>
               </td>
             </tr>
@@ -65,6 +66,79 @@
         </div>
       </template>
     </section>
+
+    <div v-if="showEditModal" class="modal-mask" @click.self="closeEdit">
+      <div class="modal-card">
+        <h3 class="modal-title">编辑场地信息</h3>
+        <div class="modal-body">
+          <div class="form-row">
+            <label>场地名称</label>
+            <input v-model="editForm.name" type="text" placeholder="请输入场地名称" />
+          </div>
+          <div class="form-row">
+            <label>类型</label>
+            <input v-model="editForm.type" type="text" placeholder="例如：会议室/报告厅" />
+          </div>
+          <div class="form-row">
+            <label>位置</label>
+            <input v-model="editForm.location" type="text" placeholder="请输入位置" />
+          </div>
+          <div class="form-row">
+            <label>容量</label>
+            <input v-model.number="editForm.capacity" type="number" min="0" placeholder="请输入容量" />
+          </div>
+          <div class="form-row">
+            <label>设施（逗号分隔）</label>
+            <input v-model="editForm.equipment" type="text" placeholder="投影,音响,空调" />
+          </div>
+          <div class="form-row">
+            <label>图片地址</label>
+            <input v-model="editForm.imageUrl" type="text" placeholder="https://..." />
+          </div>
+          <div class="form-row">
+            <label>描述</label>
+            <textarea v-model="editForm.description" rows="4" placeholder="请输入场地说明"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-btn" @click="closeEdit">取消</button>
+          <button class="primary-btn" @click="submitEdit" :disabled="saving">
+            {{ saving ? '处理中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showBlockModal" class="modal-mask" @click.self="closeBlock">
+      <div class="modal-card">
+        <h3 class="modal-title">维护/不可用时段</h3>
+        <div class="modal-body">
+          <div class="form-row">
+            <label>日期</label>
+            <input v-model="blockForm.date" type="date" />
+          </div>
+          <div class="form-row">
+            <label>开始时间</label>
+            <input v-model="blockForm.startTime" type="time" />
+          </div>
+          <div class="form-row">
+            <label>结束时间</label>
+            <input v-model="blockForm.endTime" type="time" />
+          </div>
+          <div class="form-row">
+            <label>原因</label>
+            <input v-model="blockForm.reason" type="text" placeholder="设备维护/临时占用" />
+          </div>
+          <p class="form-tip">保存后将自动通知并取消受影响的预约。</p>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-btn" @click="closeBlock">取消</button>
+          <button class="primary-btn" @click="submitBlock" :disabled="saving">
+            {{ saving ? '处理中...' : '确认维护' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -78,13 +152,40 @@ type Venue = {
   type: string;
   location: string;
   capacity: number;
-  status: string;
+  statusCode: number;
+  statusText: string;
+  imageUrl?: string;
+  equipment?: string;
+  description?: string;
 };
 
 const venues = ref<Venue[]>([]);
 const loading = ref(true);
 const loadError = ref('');
 const keyword = ref('');
+const saving = ref(false);
+
+const showEditModal = ref(false);
+const showBlockModal = ref(false);
+const currentVenue = ref<Venue | null>(null);
+
+const editForm = ref({
+  id: 0,
+  name: '',
+  type: '',
+  location: '',
+  capacity: 0,
+  equipment: '',
+  imageUrl: '',
+  description: ''
+});
+
+const blockForm = ref({
+  date: '',
+  startTime: '',
+  endTime: '',
+  reason: ''
+});
 
 const loadVenues = async () => {
   loading.value = true;
@@ -97,7 +198,11 @@ const loadVenues = async () => {
       type: v.type,
       location: v.location,
       capacity: v.capacity,
-      status: v.status === 0 ? '可预约' : '维护中'
+      statusCode: v.status ?? 0,
+      statusText: (v.status ?? 0) === 0 ? '可预约' : '维护中',
+      imageUrl: v.imageUrl || '',
+      equipment: v.equipment ? String(v.equipment) : '',
+      description: v.description || ''
     }));
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
@@ -108,7 +213,7 @@ const loadVenues = async () => {
 
 const toggleStatus = async (v: Venue) => {
   try {
-    const next = v.status === '可预约' ? 1 : 0;
+    const next = v.statusText === '可预约' ? 1 : 0;
     await apiRequest(`/api/venue/${v.id}/status`, {
       method: 'PUT',
       query: { status: next }
@@ -116,6 +221,99 @@ const toggleStatus = async (v: Venue) => {
     await loadVenues();
   } catch (e) {
     window.alert(e instanceof Error ? e.message : '操作失败');
+  }
+};
+
+const openEdit = (v: Venue) => {
+  currentVenue.value = v;
+  editForm.value = {
+    id: v.id,
+    name: v.name || '',
+    type: v.type || '',
+    location: v.location || '',
+    capacity: v.capacity ?? 0,
+    equipment: v.equipment || '',
+    imageUrl: v.imageUrl || '',
+    description: v.description || ''
+  };
+  showEditModal.value = true;
+};
+
+const closeEdit = () => {
+  showEditModal.value = false;
+  currentVenue.value = null;
+};
+
+const submitEdit = async () => {
+  if (!editForm.value.name || !editForm.value.type || !editForm.value.location) {
+    window.alert('请完善场地名称、类型与位置');
+    return;
+  }
+  saving.value = true;
+  try {
+    await apiRequest('/api/venue/update-info', {
+      method: 'PUT',
+      body: {
+        id: editForm.value.id,
+        name: editForm.value.name,
+        type: editForm.value.type,
+        location: editForm.value.location,
+        capacity: editForm.value.capacity,
+        equipment: editForm.value.equipment,
+        imageUrl: editForm.value.imageUrl,
+        description: editForm.value.description
+      }
+    });
+    closeEdit();
+    await loadVenues();
+  } catch (e) {
+    window.alert(e instanceof Error ? e.message : '保存失败');
+  } finally {
+    saving.value = false;
+  }
+};
+
+const openBlock = (v: Venue) => {
+  currentVenue.value = v;
+  blockForm.value = {
+    date: '',
+    startTime: '',
+    endTime: '',
+    reason: ''
+  };
+  showBlockModal.value = true;
+};
+
+const closeBlock = () => {
+  showBlockModal.value = false;
+  currentVenue.value = null;
+};
+
+const submitBlock = async () => {
+  if (!currentVenue.value) return;
+  if (!blockForm.value.date || !blockForm.value.startTime || !blockForm.value.endTime) {
+    window.alert('请选择日期与时间段');
+    return;
+  }
+  if (blockForm.value.startTime >= blockForm.value.endTime) {
+    window.alert('结束时间必须晚于开始时间');
+    return;
+  }
+  saving.value = true;
+  try {
+    await apiRequest(`/api/venue/${currentVenue.value.id}/block-time`, {
+      method: 'POST',
+      body: {
+        bookingDate: blockForm.value.date,
+        timeSlot: `${blockForm.value.startTime}-${blockForm.value.endTime}`,
+        reason: blockForm.value.reason
+      }
+    });
+    closeBlock();
+  } catch (e) {
+    window.alert(e instanceof Error ? e.message : '操作失败');
+  } finally {
+    saving.value = false;
   }
 };
 
@@ -166,6 +364,11 @@ const filteredVenues = computed(() => {
   cursor: pointer;
 }
 
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -194,7 +397,7 @@ table {
 }
 
 th,
-td {
+.venue-table td {
   padding: 10px 8px;
   font-size: 0.9rem;
   border-bottom: 1px solid #f2f2f2;
@@ -253,5 +456,74 @@ th {
 .empty-icon {
   font-size: 2.2rem;
   margin-bottom: 8px;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.modal-title {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.form-row input,
+.form-row textarea {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.form-tip {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ghost-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
 }
 </style>

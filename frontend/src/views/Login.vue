@@ -94,7 +94,7 @@ const resolveNextPath = (payload: LoginApiPayload) => {
   if (isFirstLogin && role === 'user') return '/change-password';
   if (hasUnreadNotice) return '/app/notice';
   if (role === 'admin') return '/app/admin/approvals';
-  if (role === 'super_admin') return '/app/super/accounts';
+  if (role === 'super_admin') return '/app/super/overview';
   return '/app/venues';
 };
 
@@ -182,7 +182,7 @@ onMounted(() => {
   if (role === 'admin') {
     router.replace('/app/admin/approvals');
   } else if (role === 'super_admin') {
-    router.replace('/app/super/accounts');
+    router.replace('/app/super/overview');
   } else {
     router.replace('/app/venues');
   }

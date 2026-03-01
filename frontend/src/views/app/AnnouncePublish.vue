@@ -99,11 +99,18 @@ const handleSubmit = async () => {
   if (!validate() || submitting.value) return;
   submitting.value = true;
   try {
+    const typeMap: Record<string, number> = {
+      公告: 0,
+      通知: 2,
+      审批: 1
+    };
     await apiRequest('/api/notifications/system/broadcast', {
       method: 'POST',
       body: {
         title: form.title,
-        content: form.content
+        content: form.content,
+        type: typeMap[form.type] ?? 0,
+        targetRole: form.target || ''
       }
     });
     alert('公告发布成功。');

@@ -20,6 +20,8 @@
           <tr>
             <th>姓名</th>
             <th>工号 / 学号</th>
+            <th>电话</th>
+            <th>院系</th>
             <th>角色</th>
             <th>状态</th>
             <th class="right">操作</th>
@@ -29,6 +31,8 @@
           <tr v-for="user in filteredList" :key="user.id">
             <td>{{ user.realName || '-' }}</td>
             <td>{{ user.username }}</td>
+            <td>{{ user.phoneNumber || '-' }}</td>
+            <td>{{ user.deptName || '-' }}</td>
             <td>
               <span class="tag" :class="`role-${user.roleKey}`">{{ user.roleLabel }}</span>
             </td>
@@ -38,6 +42,8 @@
               </span>
             </td>
             <td class="right">
+              <button class="text-btn" @click="openNotice(user)">发送通知</button>
+              <button class="text-btn" @click="resetPassword(user)">重置密码</button>
               <button class="text-btn" @click="toggleStatus(user)">
                 {{ user.enabled ? '停用' : '启用' }}
               </button>
@@ -51,6 +57,28 @@
         <p>暂无匹配账号</p>
       </div>
     </section>
+
+    <div v-if="showNoticeModal" class="modal-mask" @click.self="closeNotice">
+      <div class="modal-card">
+        <h3 class="modal-title">发送通知</h3>
+        <div class="modal-body">
+          <div class="form-row">
+            <label>标题</label>
+            <input v-model="noticeForm.title" type="text" placeholder="请输入通知标题" />
+          </div>
+          <div class="form-row">
+            <label>内容</label>
+            <textarea v-model="noticeForm.content" rows="5" placeholder="请输入通知内容"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-btn" @click="closeNotice">取消</button>
+          <button class="primary-btn" @click="submitNotice" :disabled="saving">
+            {{ saving ? '处理中...' : '发送' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -62,6 +90,8 @@ interface AccountRow {
   id: number;
   realName: string;
   username: string;
+  phoneNumber?: string;
+  deptName?: string;
   role: string;
   roleLabel: string;
   roleKey: 'user' | 'admin' | 'super_admin';
@@ -72,6 +102,14 @@ const keyword = ref('');
 const loading = ref(true);
 const loadError = ref('');
 const accounts = ref<AccountRow[]>([]);
+const saving = ref(false);
+
+const showNoticeModal = ref(false);
+const currentUser = ref<AccountRow | null>(null);
+const noticeForm = ref({
+  title: '',
+  content: ''
+});
 
 const roleToLabel = (role: string) => {
   if (role === 'SYS_ADMIN') return { roleLabel: '系统管理员', roleKey: 'super_admin' as const };
@@ -92,6 +130,8 @@ const loadAccounts = async () => {
         id: u.id,
         realName: u.realName || '',
         username: u.username,
+        phoneNumber: u.phoneNumber || '',
+        deptName: u.deptName || '',
         role: u.role,
         roleLabel: role.roleLabel,
         roleKey: role.roleKey,
@@ -115,6 +155,54 @@ const toggleStatus = async (row: AccountRow) => {
     await loadAccounts();
   } catch (e) {
     window.alert(e instanceof Error ? e.message : '操作失败');
+  }
+};
+
+const resetPassword = async (row: AccountRow) => {
+  const confirmed = window.confirm(`确认重置 ${row.realName || row.username} 的密码为 123456 吗？`);
+  if (!confirmed) return;
+  try {
+    await apiRequest(`/api/users/${row.id}/reset-password`, { method: 'PUT' });
+    window.alert('密码已重置');
+  } catch (e) {
+    window.alert(e instanceof Error ? e.message : '操作失败');
+  }
+};
+
+const openNotice = (row: AccountRow) => {
+  currentUser.value = row;
+  noticeForm.value = { title: '', content: '' };
+  showNoticeModal.value = true;
+};
+
+const closeNotice = () => {
+  showNoticeModal.value = false;
+  currentUser.value = null;
+};
+
+const submitNotice = async () => {
+  if (!currentUser.value) return;
+  if (!noticeForm.value.title || !noticeForm.value.content) {
+    window.alert('请填写通知标题和内容');
+    return;
+  }
+  saving.value = true;
+  try {
+    await apiRequest('/api/notifications/system/direct', {
+      method: 'POST',
+      body: {
+        title: noticeForm.value.title,
+        content: noticeForm.value.content,
+        type: 2,
+        targetUserId: currentUser.value.id
+      }
+    });
+    window.alert('通知已发送');
+    closeNotice();
+  } catch (e) {
+    window.alert(e instanceof Error ? e.message : '发送失败');
+  } finally {
+    saving.value = false;
   }
 };
 
@@ -163,6 +251,11 @@ onMounted(loadAccounts);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .toolbar {
@@ -250,6 +343,7 @@ th {
   font-size: 0.85rem;
   color: #6b7280;
   cursor: pointer;
+  margin-left: 8px;
 }
 
 .empty {
@@ -261,5 +355,68 @@ th {
 .empty-icon {
   font-size: 2.2rem;
   margin-bottom: 8px;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.modal-title {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.form-row input,
+.form-row textarea {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ghost-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
 }
 </style>

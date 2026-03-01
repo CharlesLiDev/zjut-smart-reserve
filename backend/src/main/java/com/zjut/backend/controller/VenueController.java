@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zjut.backend.common.Result;
-import com.zjut.backend.dto.AppointmentDTO;
+import com.zjut.backend.dto.BlockTimeDTO;
 import com.zjut.backend.dto.VenueAssignDTO;
 import com.zjut.backend.dto.VenueVO;
 import com.zjut.backend.entity.BookingRecord;
@@ -15,7 +15,6 @@ import com.zjut.backend.service.VenueInfoService;
 import com.zjut.backend.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -201,6 +200,12 @@ public class VenueController {
 
         venueInfoService.updateById(oldVenue);
         return Result.success("场地信息维护成功");
+    }
+
+    @PostMapping("{id}/block-time")
+    public Result blockTime(@PathVariable Long id, @RequestBody BlockTimeDTO dto) {
+        Long currentUserId = securityUtils.getCurrentUserId();
+        return bookingRecordService.blockVenueTime(id, dto, currentUserId);
     }
 
     @GetMapping("/test")

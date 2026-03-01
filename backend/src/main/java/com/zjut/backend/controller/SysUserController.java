@@ -58,7 +58,9 @@ public class SysUserController {
         }
 
         wrapper.orderByDesc(SysUser::getCreateTime);
-        return Result.success(sysUserService.page(page, wrapper));
+        Page<SysUser> result = sysUserService.page(page, wrapper);
+        result.getRecords().forEach(u -> u.setPassword(null));
+        return Result.success(result);
     }
 
 
@@ -95,5 +97,25 @@ public class SysUserController {
 
         String action = (status == 1) ? "启用" : "禁用";
         return Result.success("账号已" + action);
+    }
+
+    @PutMapping("/{id}/reset-password")
+    public Result resetPassword(@PathVariable Long id) {
+        if (!"SYS_ADMIN".equals(securityUtils.getUserRole())) {
+            return Result.error("权限不足");
+        }
+
+        SysUser user = sysUserService.getById(id);
+        if (user == null) return Result.error("用户不存在");
+
+        if ("SYS_ADMIN".equals(String.valueOf(user.getRole()))) {
+            return Result.error("不允许重置系统管理员密码");
+        }
+
+        user.setPassword("123456");
+        user.setIsFirstLogin(1);
+        sysUserService.updateById(user);
+
+        return Result.success("密码已重置为 123456");
     }
 }

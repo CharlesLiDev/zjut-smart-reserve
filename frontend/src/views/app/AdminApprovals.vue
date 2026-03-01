@@ -31,6 +31,28 @@
               <span class="dot">•</span>
               <span>{{ item.bookingDate }} {{ item.timeSlot }}</span>
             </p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">申请人</span>
+                <span>{{ item.contactPerson || '未填写' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">联系电话</span>
+                <span>{{ item.contactPhone || '未填写' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">主办单位</span>
+                <span>{{ item.hostUnit || '未填写' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">预计人数</span>
+                <span>{{ item.exceptNum ?? '未填写' }}</span>
+              </div>
+              <div class="detail-item detail-wide">
+                <span class="detail-label">活动说明</span>
+                <span>{{ item.description || '未填写' }}</span>
+              </div>
+            </div>
           </div>
           <div class="actions">
             <span class="status-tag">{{ item.statusText }}</span>
@@ -207,6 +229,29 @@ onMounted(loadData);
 
 .dot {
   margin: 0 6px;
+}
+
+.detail-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.detail-item {
+  display: flex;
+  gap: 6px;
+}
+
+.detail-label {
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.detail-wide {
+  grid-column: span 2;
 }
 
 .actions {

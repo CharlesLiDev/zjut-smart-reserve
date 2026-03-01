@@ -68,6 +68,16 @@ const router = createRouter({
           meta: { roles: ['super_admin'] as AppRole[], title: '账号管理' }
         },
         {
+          path: 'super/overview',
+          component: () => import('@/views/app/SuperOverview.vue'),
+          meta: { roles: ['super_admin'] as AppRole[], title: '预约总览' }
+        },
+        {
+          path: 'super/venues',
+          component: () => import('@/views/app/SuperVenues.vue'),
+          meta: { roles: ['super_admin'] as AppRole[], title: '场地总览' }
+        },
+        {
           path: 'announcements',
           component: () => import('@/views/app/AnnouncePublish.vue'),
           meta: { roles: ['admin', 'super_admin'] as AppRole[], title: '公告发布' }
@@ -101,7 +111,7 @@ router.beforeEach((to) => {
   if (to.path === '/login' && isAuthed) {
     if (isFirstLoginUser) return '/change-password';
     if (currentRole === 'admin') return '/app/admin/approvals';
-    if (currentRole === 'super_admin') return '/app/super/accounts';
+    if (currentRole === 'super_admin') return '/app/super/overview';
     return '/app/venues';
   }
 

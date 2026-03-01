@@ -5,25 +5,30 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zjut.backend.common.Result;
+import com.zjut.backend.dto.BlockTimeDTO;
 import com.zjut.backend.dto.AppointmentDTO;
 import com.zjut.backend.dto.AppointmentVO;
 import com.zjut.backend.dto.MyAppointmentQueryDTO;
 import com.zjut.backend.entity.BookingRecord;
 import com.zjut.backend.entity.Notification;
+import com.zjut.backend.entity.SysUser;
 import com.zjut.backend.entity.VenueInfo;
 import com.zjut.backend.service.BookingRecordService;
 import com.zjut.backend.mapper.BookingRecordMapper;
 import com.zjut.backend.service.NotificationService;
+import com.zjut.backend.service.SysUserService;
 import com.zjut.backend.service.VenueInfoService;
 import com.zjut.backend.utils.SecurityUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,14 +44,16 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
     private final BookingRecordMapper bookingRecordMapper;
     private final VenueInfoService venueInfoService;
     private final NotificationService notificationService;
+    private final SysUserService sysUserService;
 
     @Autowired
     private SecurityUtils securityUtils;
 
-    public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper, VenueInfoService venueInfoService, NotificationService notificationService) {
+    public BookingRecordServiceImpl(BookingRecordMapper bookingRecordMapper, VenueInfoService venueInfoService, NotificationService notificationService, SysUserService sysUserService) {
         this.bookingRecordMapper = bookingRecordMapper;
         this.venueInfoService = venueInfoService;
         this.notificationService = notificationService;
+        this.sysUserService = sysUserService;
     }
 
     @Override
@@ -84,6 +91,18 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         record.setStatus(0);
         record.setAuditadminid(0L); // Pending approval; DB column is NOT NULL
         record.setCreateTime(LocalDateTime.now());
+
+        if (!StringUtils.hasText(record.getContactPerson()) || !StringUtils.hasText(record.getContactPhone())) {
+            SysUser user = sysUserService.getById(userId);
+            if (user != null) {
+                if (!StringUtils.hasText(record.getContactPerson())) {
+                    record.setContactPerson(user.getRealName());
+                }
+                if (!StringUtils.hasText(record.getContactPhone())) {
+                    record.setContactPhone(user.getPhoneNumber());
+                }
+            }
+        }
 
         bookingRecordMapper.insert(record);
         return Result.success("预约申请已提交，请等待管理员审核");
@@ -263,6 +282,108 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         return Result.success(records);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result blockVenueTime(Long venueId, BlockTimeDTO dto, Long adminId) {
+        if (dto == null || dto.getBookingDate() == null || !StringUtils.hasText(dto.getTimeSlot())) {
+            return Result.error("请输入要维护的日期与时间段");
+        }
+
+        VenueInfo venue = venueInfoService.getById(venueId);
+        if (venue == null) {
+            return Result.error("场地不存在");
+        }
+
+        String role = securityUtils.getUserRole();
+        if ("VENUE_ADMIN".equals(role)) {
+            if (!adminId.equals(venue.getAdminId())) {
+                return Result.error("权限不足：您不是该场地管理员");
+            }
+        } else if (!"SYS_ADMIN".equals(role)) {
+            return Result.error("权限不足");
+        }
+
+        String[] times = dto.getTimeSlot().split("-");
+        if (times.length != 2) {
+            return Result.error("时间段格式错误，应为 HH:mm-HH:mm");
+        }
+        String newStart = times[0].trim();
+        String newEnd = times[1].trim();
+
+        try {
+            LocalTime.parse(newStart);
+            LocalTime.parse(newEnd);
+        } catch (DateTimeParseException ex) {
+            return Result.error("时间段格式错误，应为 HH:mm-HH:mm");
+        }
+
+        LambdaQueryWrapper<BookingRecord> conflictWrapper = new LambdaQueryWrapper<>();
+        conflictWrapper.eq(BookingRecord::getVenueId, venueId)
+                .eq(BookingRecord::getBookingDate, dto.getBookingDate())
+                .eq(BookingRecord::getStatus, 3)
+                .and(w -> w.apply("SUBSTRING_INDEX(time_slot, '-', 1) < {0}", newEnd)
+                        .apply("SUBSTRING_INDEX(time_slot, '-', -1) > {0}", newStart));
+
+        if (bookingRecordMapper.selectCount(conflictWrapper) > 0) {
+            return Result.error("该时段已存在维护记录");
+        }
+
+        BookingRecord record = new BookingRecord();
+        record.setVenueId(venueId);
+        record.setUserId(adminId);
+        record.setEventName("场地维护");
+        record.setHostUnit("场地管理");
+        record.setExceptNum(0);
+        record.setContactPerson("");
+        record.setContactPhone("");
+        record.setDescription(StringUtils.hasText(dto.getReason()) ? dto.getReason() : "场地维护/不可用");
+        record.setBookingDate(dto.getBookingDate());
+        record.setTimeSlot(dto.getTimeSlot().trim());
+        record.setStatus(3);
+        record.setAuditadminid(adminId);
+        record.setAuditTime(LocalDateTime.now());
+        record.setCreateTime(LocalDateTime.now());
+
+        SysUser adminUser = sysUserService.getById(adminId);
+        if (adminUser != null) {
+            if (!StringUtils.hasText(record.getContactPerson())) {
+                record.setContactPerson(adminUser.getRealName());
+            }
+            if (!StringUtils.hasText(record.getContactPhone())) {
+                record.setContactPhone(adminUser.getPhoneNumber());
+            }
+        }
+
+        bookingRecordMapper.insert(record);
+
+        LambdaQueryWrapper<BookingRecord> affectedWrapper = new LambdaQueryWrapper<>();
+        affectedWrapper.eq(BookingRecord::getVenueId, venueId)
+                .eq(BookingRecord::getBookingDate, dto.getBookingDate())
+                .in(BookingRecord::getStatus, 0, 2)
+                .and(w -> w.apply("SUBSTRING_INDEX(time_slot, '-', 1) < {0}", newEnd)
+                        .apply("SUBSTRING_INDEX(time_slot, '-', -1) > {0}", newStart));
+
+        List<BookingRecord> affected = bookingRecordMapper.selectList(affectedWrapper);
+        if (!affected.isEmpty()) {
+            for (BookingRecord booking : affected) {
+                booking.setStatus(4);
+                bookingRecordMapper.updateById(booking);
+
+                Notification notice = new Notification();
+                notice.setTargetUserId(booking.getUserId());
+                notice.setSenderId(adminId);
+                notice.setTitle("预约取消提醒");
+                notice.setContent("抱歉，场地 [" + venue.getName() + "] 在 " + booking.getBookingDate() + " "
+                        + booking.getTimeSlot() + " 需维护，您的预约已自动取消。");
+                notice.setType(1);
+                notice.setCreateTime(LocalDateTime.now());
+                notificationService.save(notice);
+            }
+        }
+
+        return Result.success("维护时段已更新");
+    }
+
     //判断是否可取消预约
     private boolean checkCanCancel(java.time.LocalDate date, String timeSlot) {
         try {
@@ -310,6 +431,3 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
 
     }
 }
-
-
-
