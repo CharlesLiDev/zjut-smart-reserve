@@ -3,10 +3,6 @@
     <SideNavBar class="sidebar-fixed" />
 
     <main class="content-stage">
-      <header class="content-header">
-        <h2 class="page-title">{{ currentRouteName }}</h2>
-      </header>
-
       <section class="page-content">
         <router-view v-slot="{ Component }">
           <transition name="fade-transform" mode="out-in">
@@ -19,15 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
 import SideNavBar from '@/components/SideNavBar.vue';
-
-const route = useRoute();
-
-const currentRouteName = computed(() => {
-  return (route.meta.title as string) || '欢迎回来';
-});
 </script>
 
 <style scoped>
@@ -58,22 +46,9 @@ const currentRouteName = computed(() => {
   overflow: hidden; /* 由内部的 page-content 负责滚动 */
 }
 
-.content-header {
-  padding: 30px 40px 10px;
-  background-color: rgba(248, 249, 250, 0.8);
-  backdrop-filter: blur(10px);
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #657166; /* 深林石墨色 */
-  margin: 0;
-}
-
 .page-content {
   flex: 1;
-  padding: 20px 40px 40px;
+  padding: 30px 40px 40px;
   overflow-y: auto; /* 只有内容区可以纵向滚动 */
   scroll-behavior: smooth;
 }
