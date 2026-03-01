@@ -82,6 +82,7 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         BeanUtils.copyProperties(dto, record);
         record.setUserId(userId);
         record.setStatus(0);
+        record.setAuditadminid(0L); // Pending approval; DB column is NOT NULL
         record.setCreateTime(LocalDateTime.now());
 
         bookingRecordMapper.insert(record);
@@ -309,7 +310,6 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
 
     }
 }
-
 
 
 

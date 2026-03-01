@@ -20,11 +20,13 @@
             <result property="status" column="status" />
             <result property="rejectReason" column="reject_reason" />
             <result property="createTime" column="create_time" />
+            <result property="auditadminid" column="auditAdminId" />
+            <result property="auditTime" column="audit_time" />
     </resultMap>
 
     <sql id="Base_Column_List">
         id,user_id,venue_id,event_name,host_unit,except_num,
         contact_person,contact_phone,description,plan_doc_url,booking_date,
-        time_slot,status,reject_reason,create_time
+        time_slot,status,reject_reason,create_time,auditAdminId,audit_time
     </sql>
 </mapper>

@@ -94,6 +94,7 @@ public class BookingRecord {
     /**
      * 
      */
+    @TableField("auditAdminId")
     private Long auditadminid;
 
     /**
