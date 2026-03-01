@@ -63,8 +63,23 @@ onMounted(async () => {
       type: typeMap[item.type] ?? '通知',
       time: item.createTime?.replace('T', ' ') ?? '',
       title: item.title,
-      content: item.content
+      content: item.content,
+      isRead: item.isRead ?? 0
     }));
+
+    const unreadIds = notices.value.filter((n) => n.isRead === 0).map((n) => n.id);
+    if (unreadIds.length > 0) {
+      try {
+        await apiRequest('/api/notifications/read', {
+          method: 'POST',
+          body: { ids: unreadIds }
+        });
+        notices.value = notices.value.map((n) => ({ ...n, isRead: 1 }));
+        window.dispatchEvent(new Event('unread-updated'));
+      } catch {
+        // ignore mark read failures
+      }
+    }
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -72,7 +87,7 @@ onMounted(async () => {
   }
 });
 
-const unreadCount = computed(() => notices.value.length);
+const unreadCount = computed(() => notices.value.filter((n) => n.isRead === 0).length);
 
 const handleNoticeClick = (notice) => {
   console.log('查看通知详情:', notice.title);

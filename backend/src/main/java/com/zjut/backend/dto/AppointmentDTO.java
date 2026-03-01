@@ -15,6 +15,7 @@ public class AppointmentDTO {
     private String contactPerson;
     private String contactPhone;
     private String description;
+    private String planDocUrl;
     @JsonFormat(pattern = "yyyy-MM-dd")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate bookingDate;

@@ -20,7 +20,7 @@
           <label>公告类型 <span class="required">*</span></label>
           <select v-model="form.type">
             <option value="">请选择</option>
-            <option value="公告">公告</option>
+            <option value="公告" :disabled="isVenueAdmin">公告</option>
             <option value="通知">通知</option>
             <option value="审批">审批结果</option>
           </select>
@@ -75,8 +75,9 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { apiRequest } from '@/api/http';
+import { getAuthSession, normalizeRole } from '@/utils/auth';
 
 const form = reactive({
   type: '',
@@ -86,10 +87,16 @@ const form = reactive({
 });
 
 const submitting = ref(false);
+const currentRole = computed(() => normalizeRole(getAuthSession()?.role));
+const isVenueAdmin = computed(() => currentRole.value === 'admin');
 
 const validate = () => {
   if (!form.type || !form.title || !form.content) {
     alert('请填写带 * 的必填项');
+    return false;
+  }
+  if (isVenueAdmin.value && form.type === '公告') {
+    alert('场地管理员不能发布公告');
     return false;
   }
   return true;

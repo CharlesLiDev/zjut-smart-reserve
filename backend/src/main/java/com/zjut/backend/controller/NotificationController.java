@@ -68,12 +68,19 @@ public class NotificationController {
 
     @PostMapping("/system/broadcast")
     public Result broadcastNotice(@RequestBody NotificationDTO dto) {
-        if(!"SYS_ADMIN".equals(securityUtils.getUserRole())) {
-            return Result.error("只有系统管理员才能广播通知");
+        String currentRole = securityUtils.getUserRole();
+        boolean isSysAdmin = "SYS_ADMIN".equals(currentRole);
+        boolean isVenueAdmin = "VENUE_ADMIN".equals(currentRole);
+        if (!isSysAdmin && !isVenueAdmin) {
+            return Result.error("权限不足");
         }
 
         String role = normalizeRole(dto.getTargetRole());
         Integer type = dto.getType() == null ? 0 : dto.getType();
+
+        if (isVenueAdmin && type == 0) {
+            return Result.error("场地管理员不能发布公告");
+        }
 
         if (role == null) {
             Notification notice = buildNotice(dto.getTitle(), dto.getContent(), type, null);

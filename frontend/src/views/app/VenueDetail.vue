@@ -124,6 +124,20 @@
                   <label>活动简要说明</label>
                   <textarea v-model="form.description" rows="4" placeholder="简要描述活动内容"></textarea>
                 </div>
+                <div class="form-group full-width">
+                  <label>活动策划书</label>
+                  <div class="upload-row">
+                    <input type="file" @change="handlePlanFile" accept=".pdf,.doc,.docx,.ppt,.pptx" />
+                    <button class="upload-btn" @click.prevent="uploadPlan" :disabled="uploading || !planFile">
+                      {{ uploading ? '上传中...' : '上传' }}
+                    </button>
+                  </div>
+                  <p class="upload-hint">支持 PDF / Word / PPT 文件，上传后将与预约申请绑定。</p>
+                  <div v-if="planInfo.url" class="upload-result">
+                    <span class="file-name">{{ planInfo.name }}</span>
+                    <button class="link-btn" @click.prevent="downloadPlan">下载</button>
+                  </div>
+                </div>
               </div>
             </div>
           </transition>
@@ -260,6 +274,10 @@ const form = ref({
   date: '', startTime: '', endTime: '', activityName: '', organizer: '个人', peopleCount: null, description: ''
 });
 
+const planFile = ref(null);
+const planInfo = ref({ url: '', name: '' });
+const uploading = ref(false);
+
 const timeOptions = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
 
 const filteredEndTimes = computed(() => {
@@ -289,6 +307,7 @@ const submitBooking = () => {
       hostUnit: form.value.organizer,
       exceptNum: Number(form.value.peopleCount),
       description: form.value.description,
+      planDocUrl: planInfo.value.url || '',
       bookingDate: form.value.date,
       timeSlot: `${form.value.startTime}-${form.value.endTime}`
     }
@@ -306,11 +325,54 @@ const submitBooking = () => {
         peopleCount: null,
         description: ''
       };
+      planFile.value = null;
+      planInfo.value = { url: '', name: '' };
       loadSchedule();
     })
     .catch((e) => {
       alert(e instanceof Error ? e.message : '预约失败');
     });
+};
+
+const handlePlanFile = (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  planFile.value = file;
+};
+
+const uploadPlan = async () => {
+  if (!planFile.value || uploading.value) return;
+  uploading.value = true;
+  try {
+    const token = localStorage.getItem('auth') || sessionStorage.getItem('auth');
+    const headers = {};
+    const auth = token ? JSON.parse(token) : null;
+    if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
+    const formData = new FormData();
+    formData.append('file', planFile.value);
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/files/plans`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    const payload = await res.json();
+    if (!res.ok || payload.code !== 200) {
+      throw new Error(payload?.msg || '上传失败');
+    }
+    planInfo.value = {
+      url: payload.data?.url || '',
+      name: payload.data?.name || planFile.value.name
+    };
+  } catch (e) {
+    alert(e instanceof Error ? e.message : '上传失败');
+  } finally {
+    uploading.value = false;
+  }
+};
+
+const downloadPlan = () => {
+  if (!planInfo.value.url) return;
+  window.open(planInfo.value.url, '_blank');
 };
 
 const handleImgError = (e) => {
@@ -420,6 +482,17 @@ const getScheduleStyle = (start, end) => {
 }
 .form-group input:focus, .form-group select:focus { border-color: #99CDD8; }
 .readonly-input { background: #f5f5f5; color: #999; cursor: not-allowed; }
+
+.upload-row { display: flex; align-items: center; gap: 10px; }
+.upload-btn {
+  border: none; background: #99CDD8; color: #fff; border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; font-size: 14px;
+}
+.upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.upload-hint { margin: 6px 0 0; font-size: 12px; color: #9ca3af; }
+.upload-result { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+.file-name { font-size: 13px; color: #6b7280; }
+.link-btn { border: none; background: none; color: #99CDD8; cursor: pointer; font-size: 13px; padding: 0; }
 
 /* 文本域限制：禁止横向拉伸，只允许纵向 */
 textarea {

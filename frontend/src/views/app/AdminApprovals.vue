@@ -49,6 +49,15 @@
                 <span>{{ item.exceptNum ?? '未填写' }}</span>
               </div>
               <div class="detail-item detail-wide">
+                <span class="detail-label">策划书</span>
+                <span>
+                  <template v-if="item.planDocUrl">
+                    <a class="file-link" :href="item.planDocUrl" target="_blank" rel="noopener">下载/查看</a>
+                  </template>
+                  <template v-else>未上传</template>
+                </span>
+              </div>
+              <div class="detail-item detail-wide">
                 <span class="detail-label">活动说明</span>
                 <span>{{ item.description || '未填写' }}</span>
               </div>
@@ -107,7 +116,8 @@ const loadData = async () => {
     appointments.value = list.map((item) => ({
       ...item,
       statusText: statusText[item.status] ?? '未知状态',
-      location: item.location || `场地#${item.venueId ?? '-'}`
+      location: item.location || `场地#${item.venueId ?? '-'}`,
+      planDocUrl: item.planDocUrl || item.plan_doc_url || ''
     }));
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
@@ -252,6 +262,15 @@ onMounted(loadData);
 
 .detail-wide {
   grid-column: span 2;
+}
+
+.file-link {
+  color: #99cdd8;
+  text-decoration: none;
+}
+
+.file-link:hover {
+  text-decoration: underline;
 }
 
 .actions {

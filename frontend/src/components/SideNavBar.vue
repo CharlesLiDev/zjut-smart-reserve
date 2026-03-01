@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { apiRequest } from '@/api/http';
 import { clearAuthSession, getAuthSession, normalizeRole, type AppRole } from '@/utils/auth';
 
 type MenuItem = { name: string; path: string; icon: string };
 
 const router = useRouter();
+const route = useRoute();
 const unreadCount = ref(0);
 const currentRole = ref<AppRole>('user');
 
@@ -73,7 +74,21 @@ onMounted(async () => {
   }
   currentRole.value = normalizeRole(session.role);
   await loadUnreadCount();
+  window.addEventListener('unread-updated', loadUnreadCount);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('unread-updated', loadUnreadCount);
+});
+
+watch(
+  () => route.fullPath,
+  async (path) => {
+    if (path.startsWith('/app/notice')) {
+      await loadUnreadCount();
+    }
+  }
+);
 
 const handleLogout = async () => {
   try {
