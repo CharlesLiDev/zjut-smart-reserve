@@ -30,6 +30,7 @@ const menuItems = computed<MenuItem[]>(() => {
   if (currentRole.value === 'admin') {
     return [
       { name: '通知公告', path: '/app/notice', icon: '📢' },
+      { name: '个人信息', path: '/app/profile', icon: '👤' },
       { name: '审批管理', path: '/app/admin/approvals', icon: '✅' },
       { name: '场地管理', path: '/app/admin/venues', icon: '🏟️' },
       { name: '数据看板', path: '/app/admin/dashboard', icon: '📊' },
@@ -40,6 +41,7 @@ const menuItems = computed<MenuItem[]>(() => {
   if (currentRole.value === 'super_admin') {
     return [
       { name: '通知公告', path: '/app/notice', icon: '📢' },
+      { name: '个人信息', path: '/app/profile', icon: '👤' },
       { name: '预约总览', path: '/app/super/overview', icon: '📚' },
       { name: '场地总览', path: '/app/super/venues', icon: '🏟️' },
       { name: '账号管理', path: '/app/super/accounts', icon: '👤' },
@@ -49,6 +51,7 @@ const menuItems = computed<MenuItem[]>(() => {
 
   return [
     { name: '通知公告', path: '/app/notice', icon: '📢' },
+    { name: '个人信息', path: '/app/profile', icon: '👤' },
     { name: '场地浏览', path: '/app/venues', icon: '🔍' },
     { name: '我的预约', path: '/app/appointments', icon: '📅' }
   ];

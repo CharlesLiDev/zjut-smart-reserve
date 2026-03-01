@@ -118,4 +118,26 @@ public class SysUserController {
 
         return Result.success("密码已重置为 123456");
     }
+
+    @GetMapping("/me")
+    public Result getMyProfile() {
+        Long userId = securityUtils.getCurrentUserId();
+        SysUser user = sysUserService.getById(userId);
+        if (user == null) return Result.error("用户不存在");
+        user.setPassword(null);
+        return Result.success(user);
+    }
+
+    @PutMapping("/me")
+    public Result updateMyProfile(@RequestBody SysUser payload) {
+        Long userId = securityUtils.getCurrentUserId();
+        SysUser user = sysUserService.getById(userId);
+        if (user == null) return Result.error("用户不存在");
+
+        user.setRealName(payload.getRealName());
+        user.setPhoneNumber(payload.getPhoneNumber());
+        user.setDeptName(payload.getDeptName());
+        sysUserService.updateById(user);
+        return Result.success("个人信息已更新");
+    }
 }

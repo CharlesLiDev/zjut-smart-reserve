@@ -39,6 +39,11 @@ const router = createRouter({
           meta: { roles: ['user', 'admin', 'super_admin'] as AppRole[], title: '通知公告' }
         },
         {
+          path: 'profile',
+          component: () => import('@/views/app/Profile.vue'),
+          meta: { roles: ['user', 'admin', 'super_admin'] as AppRole[], title: '个人信息' }
+        },
+        {
           path: 'appointments',
           component: () => import('@/views/app/Appointments.vue'),
           meta: { roles: ['user', 'admin', 'super_admin'] as AppRole[], title: '我的预约' }
