@@ -51,8 +51,8 @@
               <div class="detail-item detail-wide">
                 <span class="detail-label">策划书</span>
                 <span>
-                  <template v-if="item.planDocUrl">
-                    <a class="file-link" :href="item.planDocUrl" target="_blank" rel="noopener">下载/查看</a>
+                  <template v-if="item.planDocFullUrl">
+                    <a class="file-link" :href="item.planDocFullUrl" target="_blank" rel="noopener">下载/查看</a>
                   </template>
                   <template v-else>未上传</template>
                 </span>
@@ -105,6 +105,13 @@ const statusText: Record<number, string> = {
   5: '已结束'
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+const resolveFileUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 const loadData = async () => {
   loading.value = true;
   loadError.value = '';
@@ -113,12 +120,16 @@ const loadData = async () => {
     const list = await apiRequest<any[]>('/api/appointments/admin/list', {
       query: { tab: tab?.status ?? 0 }
     });
-    appointments.value = list.map((item) => ({
-      ...item,
-      statusText: statusText[item.status] ?? '未知状态',
-      location: item.location || `场地#${item.venueId ?? '-'}`,
-      planDocUrl: item.planDocUrl || item.plan_doc_url || ''
-    }));
+    appointments.value = list.map((item) => {
+      const rawUrl = item.planDocUrl || item.plan_doc_url || '';
+      return {
+        ...item,
+        statusText: statusText[item.status] ?? '未知状态',
+        location: item.location || `场地#${item.venueId ?? '-'}`,
+        planDocUrl: rawUrl,
+        planDocFullUrl: resolveFileUrl(rawUrl)
+      };
+    });
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
   } finally {

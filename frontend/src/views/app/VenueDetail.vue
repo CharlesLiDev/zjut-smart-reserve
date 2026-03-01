@@ -275,8 +275,15 @@ const form = ref({
 });
 
 const planFile = ref(null);
-const planInfo = ref({ url: '', name: '' });
+const planInfo = ref({ url: '', fullUrl: '', name: '' });
 const uploading = ref(false);
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+
+const resolveFileUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 const timeOptions = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
 
@@ -326,7 +333,7 @@ const submitBooking = () => {
         description: ''
       };
       planFile.value = null;
-      planInfo.value = { url: '', name: '' };
+      planInfo.value = { url: '', fullUrl: '', name: '' };
       loadSchedule();
     })
     .catch((e) => {
@@ -359,8 +366,10 @@ const uploadPlan = async () => {
     if (!res.ok || payload.code !== 200) {
       throw new Error(payload?.msg || '上传失败');
     }
+    const rawUrl = payload.data?.url || '';
     planInfo.value = {
-      url: payload.data?.url || '',
+      url: rawUrl,
+      fullUrl: resolveFileUrl(rawUrl),
       name: payload.data?.name || planFile.value.name
     };
   } catch (e) {
@@ -370,9 +379,28 @@ const uploadPlan = async () => {
   }
 };
 
-const downloadPlan = () => {
-  if (!planInfo.value.url) return;
-  window.open(planInfo.value.url, '_blank');
+const downloadPlan = async () => {
+  const targetUrl = planInfo.value.fullUrl || resolveFileUrl(planInfo.value.url);
+  if (!targetUrl) return;
+  try {
+    const tokenRaw = localStorage.getItem('auth') || sessionStorage.getItem('auth');
+    const auth = tokenRaw ? JSON.parse(tokenRaw) : null;
+    const headers = {};
+    if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
+
+    const res = await fetch(targetUrl, { headers });
+    if (!res.ok) throw new Error('下载失败');
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = planInfo.value.name || 'plan.doc';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  } catch (e) {
+    alert(e instanceof Error ? e.message : '下载失败');
+  }
 };
 
 const handleImgError = (e) => {
