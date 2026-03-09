@@ -115,9 +115,7 @@ router.beforeEach((to) => {
 
   if (to.path === '/login' && isAuthed) {
     if (isFirstLoginUser) return '/change-password';
-    if (currentRole === 'admin') return '/app/admin/approvals';
-    if (currentRole === 'super_admin') return '/app/super/overview';
-    return '/app/venues';
+    return '/app/notice';
   }
 
   const expectedRoles = to.meta.roles as AppRole[] | undefined;

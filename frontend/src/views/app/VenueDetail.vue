@@ -292,7 +292,11 @@ const resolveFileUrl = (url) => {
   return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
-const timeOptions = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
+const timeOptions = Array.from({ length: (22 - 8) * 2 + 1 }, (_, idx) => {
+  const hour = 8 + Math.floor(idx / 2);
+  const minute = idx % 2 === 0 ? '00' : '30';
+  return `${String(hour).padStart(2, '0')}:${minute}`;
+});
 
 const filteredEndTimes = computed(() => {
   if (!form.value.startTime) return [];

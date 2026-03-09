@@ -89,13 +89,9 @@ const parseFirstLogin = (raw: unknown) => raw === true || raw === 1 || raw === '
 const resolveNextPath = (payload: LoginApiPayload) => {
   const role = normalizeRole(payload.role ?? payload.user?.role);
   const isFirstLogin = parseFirstLogin(payload.isFirstLogin ?? payload.user?.isFirstLogin);
-  const hasUnreadNotice = payload.hasUnreadNotice === true;
 
   if (isFirstLogin && role === 'user') return '/change-password';
-  if (hasUnreadNotice) return '/app/notice';
-  if (role === 'admin') return '/app/admin/approvals';
-  if (role === 'super_admin') return '/app/super/overview';
-  return '/app/venues';
+  return '/app/notice';
 };
 
 const saveSession = (payload: LoginApiPayload) => {
@@ -180,11 +176,11 @@ onMounted(() => {
   if (!auth?.token) return;
   const role = normalizeRole(auth.role);
   if (role === 'admin') {
-    router.replace('/app/admin/approvals');
+    router.replace('/app/notice');
   } else if (role === 'super_admin') {
-    router.replace('/app/super/overview');
+    router.replace('/app/notice');
   } else {
-    router.replace('/app/venues');
+    router.replace('/app/notice');
   }
 });
 </script>
