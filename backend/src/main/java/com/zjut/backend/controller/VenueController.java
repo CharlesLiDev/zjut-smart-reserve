@@ -196,10 +196,34 @@ public class VenueController {
         oldVenue.setLocation(venueInfo.getLocation());
         oldVenue.setType(venueInfo.getType());
         oldVenue.setName(venueInfo.getName());
+        if (venueInfo.getApprovalMode() != null) {
+            oldVenue.setApprovalMode(venueInfo.getApprovalMode());
+        }
         // ... 其他允许修改的字段
 
         venueInfoService.updateById(oldVenue);
         return Result.success("场地信息维护成功");
+    }
+
+    @PutMapping("{id}/approval-mode")
+    public Result updateApprovalMode(@PathVariable Long id, @RequestParam Integer mode) {
+        Long currentUserId = securityUtils.getCurrentUserId();
+        String role = securityUtils.getUserRole();
+
+        VenueInfo venue = venueInfoService.getById(id);
+        if (venue == null) {
+            return Result.error("场地不存在");
+        }
+        if (!"SYS_ADMIN".equals(role) && !currentUserId.equals(venue.getAdminId())) {
+            return Result.error("权限不足：您不是该场地的管理员");
+        }
+        if (mode == null || (mode != 0 && mode != 1)) {
+            return Result.error("审批模式参数错误");
+        }
+
+        venue.setApprovalMode(mode);
+        venueInfoService.updateById(venue);
+        return Result.success("审批模式更新成功");
     }
 
     @PostMapping("{id}/block-time")

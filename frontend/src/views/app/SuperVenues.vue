@@ -25,6 +25,7 @@
               <th>容量</th>
               <th>管理员</th>
               <th>状态</th>
+              <th>审批方式</th>
               <th class="right">操作</th>
             </tr>
           </thead>
@@ -40,9 +41,13 @@
                   {{ v.statusText }}
                 </span>
               </td>
+              <td>{{ v.approvalMode === 1 ? '自动审批' : '人工审批' }}</td>
               <td class="right">
                 <button class="text-btn" @click="openEdit(v)">编辑</button>
                 <button class="text-btn" @click="openAssign(v)">变更管理员</button>
+                <button class="text-btn" @click="toggleApprovalMode(v)">
+                  {{ v.approvalMode === 1 ? '改为人工' : '改为自动' }}
+                </button>
                 <button class="text-btn danger" @click="toggleStatus(v)">
                   {{ v.statusText === '可预约' ? '临时关闭' : '恢复开放' }}
                 </button>
@@ -89,6 +94,13 @@
           <div class="form-row">
             <label>描述</label>
             <textarea v-model="editForm.description" rows="4"></textarea>
+          </div>
+          <div class="form-row">
+            <label>审批方式</label>
+            <select v-model.number="editForm.approvalMode">
+              <option :value="0">人工审批</option>
+              <option :value="1">自动审批</option>
+            </select>
           </div>
         </div>
         <div class="modal-actions">
@@ -137,6 +149,7 @@ type Venue = {
   capacity: number;
   statusCode: number;
   statusText: string;
+  approvalMode: number;
   adminId?: number;
   adminName?: string;
   imageUrl?: string;
@@ -169,7 +182,8 @@ const editForm = ref({
   capacity: 0,
   equipment: '',
   imageUrl: '',
-  description: ''
+  description: '',
+  approvalMode: 0
 });
 
 const assignForm = ref({
@@ -199,6 +213,7 @@ const loadVenues = async () => {
       capacity: v.capacity,
       statusCode: v.status ?? 0,
       statusText: (v.status ?? 0) === 0 ? '可预约' : '维护中',
+      approvalMode: v.approvalMode ?? 0,
       adminId: v.adminId,
       adminName: v.adminName,
       imageUrl: v.imageUrl || '',
@@ -235,7 +250,8 @@ const openEdit = (v: Venue) => {
     capacity: v.capacity ?? 0,
     equipment: v.equipment || '',
     imageUrl: v.imageUrl || '',
-    description: v.description || ''
+    description: v.description || '',
+    approvalMode: v.approvalMode ?? 0
   };
   showEditModal.value = true;
 };
@@ -262,7 +278,8 @@ const submitEdit = async () => {
         capacity: editForm.value.capacity,
         equipment: editForm.value.equipment,
         imageUrl: editForm.value.imageUrl,
-        description: editForm.value.description
+        description: editForm.value.description,
+        approvalMode: editForm.value.approvalMode
       }
     });
     closeEdit();
@@ -271,6 +288,19 @@ const submitEdit = async () => {
     window.alert(e instanceof Error ? e.message : '保存失败');
   } finally {
     saving.value = false;
+  }
+};
+
+const toggleApprovalMode = async (v: Venue) => {
+  try {
+    const next = v.approvalMode === 1 ? 0 : 1;
+    await apiRequest(`/api/venue/${v.id}/approval-mode`, {
+      method: 'PUT',
+      query: { mode: next }
+    });
+    await loadVenues();
+  } catch (e) {
+    window.alert(e instanceof Error ? e.message : '操作失败');
   }
 };
 

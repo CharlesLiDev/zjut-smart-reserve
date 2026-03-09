@@ -15,6 +15,7 @@ public class VenueVO implements Serializable {
     private Integer status; // 0-可用, 1-维护中, 2-禁用
     private String description;
     private String equipment;
+    private Integer approvalMode; // 0-人工审批, 1-自动审批
 
     // 2. 核心：增加展示用的逻辑字段
     private Long adminId;      // 管理员ID

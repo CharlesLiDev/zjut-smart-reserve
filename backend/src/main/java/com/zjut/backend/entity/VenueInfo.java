@@ -55,6 +55,11 @@ public class VenueInfo {
     private Long adminId;
 
     /**
+     * 0：人工审批，1：自动审批
+     */
+    private Integer approvalMode;
+
+    /**
      * 场地详情
      */
     private String description;
@@ -87,6 +92,7 @@ public class VenueInfo {
             && (this.getImageUrl() == null ? other.getImageUrl() == null : this.getImageUrl().equals(other.getImageUrl()))
             && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
             && (this.getAdminId() == null ? other.getAdminId() == null : this.getAdminId().equals(other.getAdminId()))
+            && (this.getApprovalMode() == null ? other.getApprovalMode() == null : this.getApprovalMode().equals(other.getApprovalMode()))
             && (this.getDescription() == null ? other.getDescription() == null : this.getDescription().equals(other.getDescription()))
             && (this.getEquipment() == null ? other.getEquipment() == null : this.getEquipment().equals(other.getEquipment()));
     }
@@ -103,6 +109,7 @@ public class VenueInfo {
         result = prime * result + ((getImageUrl() == null) ? 0 : getImageUrl().hashCode());
         result = prime * result + ((getStatus() == null) ? 0 : getStatus().hashCode());
         result = prime * result + ((getAdminId() == null) ? 0 : getAdminId().hashCode());
+        result = prime * result + ((getApprovalMode() == null) ? 0 : getApprovalMode().hashCode());
         result = prime * result + ((getDescription() == null) ? 0 : getDescription().hashCode());
         result = prime * result + ((getEquipment() == null) ? 0 : getEquipment().hashCode());
         return result;
@@ -122,6 +129,7 @@ public class VenueInfo {
         sb.append(", imageUrl=").append(imageUrl);
         sb.append(", status=").append(status);
         sb.append(", adminId=").append(adminId);
+        sb.append(", approvalMode=").append(approvalMode);
         sb.append(", description=").append(description);
         sb.append(", equipment=").append(equipment);
         sb.append("]");

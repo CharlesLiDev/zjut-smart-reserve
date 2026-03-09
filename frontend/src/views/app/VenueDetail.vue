@@ -151,6 +151,9 @@
               {{ showBookingForm ? '提交申请' : '预约申请' }}
             </button>
           </div>
+          <p class="approval-tip">
+            {{ venueData.approvalMode === 1 ? '该场馆支持自动审批' : '该场馆需要管理员审批' }}
+          </p>
         </section>
       </div>
     </div>
@@ -182,7 +185,8 @@ const venueData = ref({
   location: '',
   detailedAddress: '',
   description: '',
-  facilities: []
+  facilities: [],
+  approvalMode: 0
 });
 
 const currentScheduleDate = ref('');
@@ -202,7 +206,8 @@ const loadVenue = async () => {
       location: data.location || '',
       detailedAddress: data.location || '',
       description: data.description || '',
-      facilities: String(data.equipment ?? '').split(',').filter(Boolean)
+      facilities: String(data.equipment ?? '').split(',').filter(Boolean),
+      approvalMode: data.approvalMode ?? 0
     };
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : String(e);
@@ -536,6 +541,12 @@ textarea {
 
 /* 底部按钮 */
 .action-footer { margin-top: 40px; display: flex; justify-content: center; }
+.approval-tip {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #9ca3af;
+}
 .submit-btn {
   padding: 14px 80px; border-radius: 30px; border: none; font-size: 18px; font-weight: 600;
   cursor: pointer; transition: all 0.3s; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.05);

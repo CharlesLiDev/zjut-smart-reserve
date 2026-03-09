@@ -85,12 +85,26 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
             return Result.error("该时段已被占用或正在审核中，请刷新排期表重选");
         }
 
+        VenueInfo venue = venueInfoService.getById(dto.getVenueId());
+        if (venue == null) {
+            return Result.error("场地不存在");
+        }
+        if (venue.getStatus() != null && venue.getStatus() != 0) {
+            return Result.error("该场地当前不可预约");
+        }
+
         BookingRecord record = new BookingRecord();
         BeanUtils.copyProperties(dto, record);
         record.setUserId(userId);
-        record.setStatus(0);
+        Integer approvalMode = venue.getApprovalMode() == null ? 0 : venue.getApprovalMode();
+        boolean autoApprove = approvalMode == 1;
+        record.setStatus(autoApprove ? 2 : 0);
         record.setAuditadminid(0L); // Pending approval; DB column is NOT NULL
         record.setCreateTime(LocalDateTime.now());
+        if (autoApprove) {
+            record.setAuditTime(LocalDateTime.now());
+            record.setRejectReason("");
+        }
 
         if (!StringUtils.hasText(record.getContactPerson()) || !StringUtils.hasText(record.getContactPhone())) {
             SysUser user = sysUserService.getById(userId);
@@ -105,6 +119,18 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         }
 
         bookingRecordMapper.insert(record);
+        if (autoApprove) {
+            Notification notice = new Notification();
+            notice.setTitle("预约申请通过通知");
+            notice.setContent("您的预约已通过（系统自动审批）");
+            notice.setTargetUserId(userId);
+            notice.setSenderId(0L);
+            notice.setType(1);
+            notice.setCreateTime(LocalDateTime.now());
+            notificationService.save(notice);
+            return Result.success("您的预约已通过（系统自动审批）");
+        }
+
         return Result.success("预约申请已提交，请等待管理员审核");
     }
 
@@ -411,8 +437,12 @@ public class BookingRecordServiceImpl extends ServiceImpl<BookingRecordMapper, B
         String statusText = (record.getStatus() == 2) ? "通过" : "驳回";
         notice.setTitle("预约申请" + statusText + "通知");
 
-        String content = String.format("您的活动 [%s] 预约申请已被管理员%s。",
-                record.getEventName(), statusText);
+        String content;
+        if (record.getStatus() == 2) {
+            content = String.format("您的活动 [%s] 预约已通过（管理员审批）。", record.getEventName());
+        } else {
+            content = String.format("您的活动 [%s] 预约申请已被管理员驳回。", record.getEventName());
+        }
 
         if(record.getStatus() == 1 && record.getRejectReason()!=null){
             content +="驳回原因："+record.getRejectReason();
